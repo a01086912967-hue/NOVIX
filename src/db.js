@@ -197,6 +197,40 @@ async function init() {
     );
     CREATE INDEX IF NOT EXISTS karaoke_scores_guild ON karaoke_scores (guild_id, user_id);
 
+    -- 타자 게임 최고 기록
+    CREATE TABLE IF NOT EXISTS typing_records (
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      lang TEXT NOT NULL,
+      best_cpm INT NOT NULL,
+      PRIMARY KEY (guild_id, user_id, lang)
+    );
+
+    -- 놀이용 코인 (진짜 돈 아님, 서버마다 따로)
+    CREATE TABLE IF NOT EXISTS economy (
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      balance BIGINT NOT NULL DEFAULT 0,
+      last_daily TEXT,
+      streak INT NOT NULL DEFAULT 0,
+      last_work TIMESTAMPTZ,
+      PRIMARY KEY (guild_id, user_id)
+    );
+
+    -- 노래방 곡 목록 (서버가 직접 올린 MR + 가사 파일)
+    CREATE TABLE IF NOT EXISTS karaoke_songs (
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      artist TEXT,
+      audio BYTEA NOT NULL,
+      lrc TEXT,
+      added_by TEXT NOT NULL,
+      plays INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS karaoke_songs_guild ON karaoke_songs (guild_id);
+
     -- 웹 로그인 기록 (IP는 기본으로 앞부분만, 30일 뒤 자동 삭제)
     CREATE TABLE IF NOT EXISTS login_logs (
       id SERIAL PRIMARY KEY,

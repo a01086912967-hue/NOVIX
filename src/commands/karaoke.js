@@ -1,12 +1,12 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } = require('discord.js');
 const db = require('../db');
 const { embed } = require('../utils/helpers');
-const { postPanel, refreshPanel, resetRoom, planOf, addMr } = require('../utils/karaoke');
+const { postPanel, refreshPanel, resetRoom, planOf, addMr, addSong, setSongLyrics, deleteSong, showSongs } = require('../utils/karaoke');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('노래방')
-    .setDescription('음성 채널 노래방 (유튜브 노래방 영상 + 같이 보기)')
+    .setDescription('음성 채널 노래방 (NOVIX가 MR 틀기 + 가사 / 유튜브 같이 보기)')
     .addSubcommand((s) =>
       s.setName('지정').setDescription('[관리자] 노래방 음성 채널과 패널 채널 정하기')
         .addChannelOption((o) => o.setName('음성채널').setDescription('노래 부를 음성 채널').setRequired(true).addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice))
@@ -18,6 +18,27 @@ module.exports = {
       s.setName('mr').setDescription('내 MR 파일로 곡 신청 (내 차례에 NOVIX가 음성 채널에서 틀어줘요)')
         .addAttachmentOption((o) => o.setName('파일').setDescription('MR 오디오 파일 (mp3 등, 25MB 이하, 정식으로 구한 파일만)').setRequired(true))
         .addStringOption((o) => o.setName('제목').setDescription('노래 제목 (비우면 파일 이름)').setMaxLength(100))
+        .addAttachmentOption((o) => o.setName('가사파일').setDescription('시간이 적힌 가사 파일 .lrc (있으면 가사가 시간 맞춰 나와요)'))
+    )
+    .addSubcommand((s) =>
+      s.setName('곡추가').setDescription('[관리자] 서버 곡 목록에 MR 올리기 (누구나 🎵 노래 고르기로 부를 수 있어요)')
+        .addAttachmentOption((o) => o.setName('파일').setDescription('MR 오디오 파일 (mp3 등, 15MB 이하, 정식으로 구한 파일만)').setRequired(true))
+        .addStringOption((o) => o.setName('제목').setDescription('노래 제목').setRequired(true).setMaxLength(80))
+        .addStringOption((o) => o.setName('가수').setDescription('가수 이름').setMaxLength(60))
+        .addAttachmentOption((o) => o.setName('가사파일').setDescription('시간이 적힌 가사 파일 .lrc (나중에 /노래방 가사 로 붙여도 돼요)'))
+    )
+    .addSubcommand((s) =>
+      s.setName('곡목록').setDescription('서버 곡 목록 보기')
+        .addStringOption((o) => o.setName('검색').setDescription('제목이나 가수로 찾기').setMaxLength(60))
+    )
+    .addSubcommand((s) =>
+      s.setName('가사').setDescription('[관리자] 곡 목록의 노래에 가사 파일(.lrc) 붙이기/바꾸기')
+        .addIntegerOption((o) => o.setName('번호').setDescription('곡 번호 (/노래방 곡목록 에서 #숫자)').setRequired(true).setMinValue(1))
+        .addAttachmentOption((o) => o.setName('가사파일').setDescription('.lrc 가사 파일').setRequired(true))
+    )
+    .addSubcommand((s) =>
+      s.setName('곡삭제').setDescription('[관리자] 곡 목록에서 노래 지우기')
+        .addIntegerOption((o) => o.setName('번호').setDescription('곡 번호 (/노래방 곡목록 에서 #숫자)').setRequired(true).setMinValue(1))
     )
     .addSubcommand((s) =>
       s.setName('랭킹').setDescription('노래방 점수 랭킹')
@@ -30,7 +51,7 @@ module.exports = {
   async execute(interaction, client) {
     const sub = interaction.options.getSubcommand();
     const guild = interaction.guild;
-    const staffOnly = ['지정', '패널', '초기화'].includes(sub);
+    const staffOnly = ['지정', '패널', '초기화', '곡추가', '가사', '곡삭제'].includes(sub);
     if (staffOnly && !interaction.memberPermissions.has(PermissionFlagsBits.ManageChannels))
       return interaction.reply({ content: '❌ 채널 관리 권한이 필요해요.', flags: MessageFlags.Ephemeral });
 
@@ -38,7 +59,11 @@ module.exports = {
     if (plan === 'free' && sub !== '랭킹')
       return interaction.reply({ content: '💎 노래방은 프리미엄 기능이에요. `/프리미엄 상태`로 확인해보세요.', flags: MessageFlags.Ephemeral });
 
-    if (sub === 'mr') return addMr(interaction, interaction.options.getAttachment('파일'), interaction.options.getString('제목'));
+    if (sub === 'mr') return addMr(interaction, interaction.options.getAttachment('파일'), interaction.options.getString('제목'), interaction.options.getAttachment('가사파일'));
+    if (sub === '곡추가') return addSong(interaction, plan);
+    if (sub === '곡목록') return showSongs(interaction, plan);
+    if (sub === '가사') return setSongLyrics(interaction);
+    if (sub === '곡삭제') return deleteSong(interaction);
 
     if (sub === '지정') {
       const vc = interaction.options.getChannel('음성채널');

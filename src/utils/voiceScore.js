@@ -12,6 +12,9 @@ const FRAME = 960; // 20ms (48kHz)
 const sessions = new Map(); // guildId → { conn, userId, stats, cleanup }
 
 const available = () => !!(voice && prism);
+const errors = new Map(); // guildId → 마지막 실패 이유 (사용자에게 보여줄 말)
+const lastError = (guildId) => errors.get(guildId) || null;
+const fail = (guildId, msg, err) => { errors.set(guildId, msg); console.error(`[노래방] ${msg}`, err?.message || err || ''); return null; };
 
 function newStats() {
   return { startedAt: Date.now(), voicedMs: 0, rms: [], pitches: [], buf: [], frameCount: 0 };
@@ -96,6 +99,11 @@ function computeScore(st) {
 
 // ── 듣기 시작 / 끝 ──
 async function ensureConnection(guild, channelId) {
+  const ch = guild.channels.cache.get(channelId);
+  const perms = ch?.permissionsFor(guild.members.me);
+  if (!ch) return fail(guild.id, '노래방 음성 채널을 찾을 수 없어요. `/노래방 지정`을 다시 해주세요.');
+  if (!perms?.has('Connect') || !perms?.has('Speak')) return fail(guild.id, `NOVIX에게 ${ch} 채널의 **연결 · 말하기** 권한이 없어요.`);
+  if (ch.full && !perms.has('MoveMembers')) return fail(guild.id, '음성 채널 인원이 꽉 차서 NOVIX가 못 들어가요.');
   let conn = voice.getVoiceConnection(guild.id);
   if (!conn || conn.joinConfig.channelId !== channelId) {
     conn = voice.joinVoiceChannel({ channelId, guildId: guild.id, adapterCreator: guild.voiceAdapterCreator, selfDeaf: false, selfMute: false });
@@ -104,9 +112,8 @@ async function ensureConnection(guild, channelId) {
     await voice.entersState(conn, voice.VoiceConnectionStatus.Ready, 15_000);
     return conn;
   } catch (err) {
-    console.error('노래방 음성 채널 연결 실패:', err.message);
     conn.destroy();
-    return null;
+    return fail(guild.id, `음성 채널 연결이 안 돼요 (15초 안에 연결 실패). 봇 관리자는 Railway 로그와 Node 버전(24.17 이상)을 확인해주세요.`, err);
   }
 }
 
@@ -142,26 +149,36 @@ async function stop(guildId) {
 
 // ── MR 파일 재생 (사용자가 올린 오디오 파일) ──
 const players = new Map(); // guildId → AudioPlayer
-async function playMr(guild, channelId, url, onEnd) {
-  if (!available()) return false;
+// source: 파일 주소(문자열) 또는 저장된 파일(Buffer)
+async function playMr(guild, channelId, source, onEnd) {
+  errors.delete(guild.id);
+  if (!available()) return !!fail(guild.id, '음성 기능 패키지(@discordjs/voice)가 설치되지 않았어요. package.json을 올렸는지 확인해주세요.');
+  if (!source) return !!fail(guild.id, 'MR 파일을 찾을 수 없어요. 곡이 지워졌을 수 있어요.');
   const conn = await ensureConnection(guild, channelId);
   if (!conn) return false;
   stopMr(guild.id);
   const player = voice.createAudioPlayer({ behaviors: { noSubscriber: voice.NoSubscriberBehavior.Play } });
+  let resource;
   try {
-    const resource = voice.createAudioResource(url, { inputType: voice.StreamType.Arbitrary }); // ffmpeg로 mp3 등을 풀어요
+    const input = Buffer.isBuffer(source) ? require('stream').Readable.from([source]) : source;
+    resource = voice.createAudioResource(input, { inputType: voice.StreamType.Arbitrary }); // ffmpeg로 mp3 등을 풀어요
     player.play(resource);
   } catch (err) {
-    console.error('MR 재생 실패:', err.message);
-    return false;
+    return !!fail(guild.id, 'MR 파일을 재생하지 못했어요 (ffmpeg 문제거나 지원하지 않는 파일).', err);
   }
   let ended = false;
   const finish = () => { if (ended) return; ended = true; players.delete(guild.id); onEnd?.(); };
   player.on(voice.AudioPlayerStatus.Idle, finish);
-  player.on('error', (err) => { console.error('MR 재생 오류:', err.message); finish(); });
+  player.on('error', (err) => { fail(guild.id, 'MR 재생 중 오류가 났어요.', err); finish(); });
   conn.subscribe(player);
-  players.set(guild.id, { player, cancel: () => { ended = true; } });
+  players.set(guild.id, { player, resource, cancel: () => { ended = true; } });
   return true;
+}
+
+// 지금 몇 ms째 재생 중인지 (가사 맞추기용). 재생 중이 아니면 null
+function position(guildId) {
+  const p = players.get(guildId);
+  return p ? p.resource.playbackDuration : null;
 }
 
 function stopMr(guildId) {
@@ -180,4 +197,4 @@ function leave(guildId) {
 
 const isListening = (guildId) => sessions.has(guildId);
 
-module.exports = { available, start, stop, leave, isListening, computeScore, analyzeFrame, newStats, playMr, stopMr };
+module.exports = { available, start, stop, leave, isListening, computeScore, analyzeFrame, newStats, playMr, stopMr, position, lastError };
