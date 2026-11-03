@@ -1,0 +1,987 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NOVIX 대시보드</title>
+<!-- 링크 미리보기 -->
+<meta name="description" content="임베드 꾸미기 · 자동 메시지 · 서버 설정을 사이트에서.">
+<meta name="theme-color" content="#7B6BFF">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="NOVIX">
+<meta property="og:title" content="NOVIX 대시보드">
+<meta property="og:description" content="임베드 꾸미기 · 자동 메시지 · 서버 설정을 사이트에서.">
+<meta property="og:url" content="https://novixbot.shop/app">
+<meta property="og:image" content="https://novixbot.shop/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="NOVIX 대시보드">
+<meta name="twitter:description" content="임베드 꾸미기 · 자동 메시지 · 서버 설정을 사이트에서.">
+<meta name="twitter:image" content="https://novixbot.shop/og.png">
+<!-- /링크 미리보기 -->
+<link rel="icon" href="/icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E1024; --panel: #161936; --panel2: #1B1E3D; --line: #262A52; --line2: #33366A;
+    --text: #F2F2F7; --muted: #A9ABC6; --accent: #7B6BFF; --accent-text: #B3AAFF; --btn: #5B4BE8;
+    --ok: #7EE2A8; --err: #FF9C9C;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Noto Sans KR', system-ui, sans-serif; }
+  a { color: var(--accent-text); }
+  header { border-bottom: 1px solid var(--line); }
+  .bar { max-width: 1280px; margin: 0 auto; padding: 14px 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; letter-spacing: .04em; }
+  .user { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); }
+  .user img { width: 32px; height: 32px; border-radius: 50%; }
+  main { max-width: 1280px; margin: 0 auto; padding: 28px 20px 80px; }
+  h1 { margin: 0 0 6px; font-size: 28px; font-weight: 900; }
+  .sub { margin: 0 0 24px; color: var(--muted); font-size: 15px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .col-edit { flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+  .col-prev { flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+  .card h2 { margin: 0 0 14px; font-size: 16px; font-weight: 700; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; }
+  .row > * { flex: 1 1 200px; min-width: 0; }
+  label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+  input[type=text], input[type=url], input[type=number], select, textarea {
+    width: 100%; min-height: 44px; border-radius: 10px; background: var(--panel2); border: 1px solid var(--line2);
+    color: var(--text); font: inherit; font-size: 15px; padding: 10px 12px;
+  }
+  textarea { min-height: 96px; resize: vertical; line-height: 1.6; }
+  input[type=color] { width: 56px; height: 44px; border: 1px solid var(--line2); border-radius: 10px; background: var(--panel2); padding: 4px; }
+  .check { flex-direction: row; align-items: center; gap: 10px; color: var(--text); font-size: 14px; min-height: 44px; }
+  .check input { width: 20px; height: 20px; accent-color: var(--accent); }
+  button { font: inherit; cursor: pointer; }
+  .btn { min-height: 46px; padding: 0 20px; border-radius: 10px; border: none; background: var(--btn); color: #fff; font-weight: 700; font-size: 15px; }
+  .btn.ghost { background: transparent; border: 1px solid var(--line2); color: var(--text); }
+  .btn.small { min-height: 36px; padding: 0 12px; font-size: 13px; font-weight: 500; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .field-item { border: 1px solid var(--line2); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .field-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); }
+  .toast { min-height: 22px; font-size: 14px; }
+  .toast.ok { color: var(--ok); } .toast.err { color: var(--err); }
+  details summary { cursor: pointer; font-size: 14px; color: var(--accent-text); min-height: 32px; display: flex; align-items: center; }
+
+  /* 디스코드 미리보기 */
+  .dc { background: #313338; border-radius: 12px; padding: 16px; display: flex; gap: 14px; color: #DBDEE1; font-size: 15px; }
+  .dc-ava { width: 42px; height: 42px; border-radius: 50%; background: #5865F2; flex: none; object-fit: cover; }
+  .dc-body { min-width: 0; flex: 1; }
+  .dc-name { font-weight: 700; color: #F2F3F5; display: flex; align-items: center; gap: 6px; }
+  .dc-tag { font-size: 10px; background: #5865F2; color: #fff; border-radius: 4px; padding: 1px 5px; font-weight: 700; }
+  .dc-content { white-space: pre-wrap; word-break: break-word; margin-top: 4px; line-height: 1.45; }
+  .em { margin-top: 8px; background: #2B2D31; border-left: 4px solid #7B6BFF; border-radius: 4px; padding: 12px 16px 14px; max-width: 520px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; }
+  .em-main { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .em-author { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #F2F3F5; }
+  .em-author img, .em-foot img { width: 22px; height: 22px; border-radius: 50%; }
+  .em-title { font-weight: 700; color: #F2F3F5; }
+  .em-title.link { color: #00A8FC; }
+  .em-desc { white-space: pre-wrap; word-break: break-word; font-size: 14px; line-height: 1.45; }
+  .em-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .em-field { grid-column: 1 / -1; font-size: 14px; min-width: 0; }
+  .em-field.inline { grid-column: auto; }
+  .em-field b { display: block; color: #F2F3F5; font-size: 13px; }
+  .em-field span { white-space: pre-wrap; word-break: break-word; }
+  .em-thumb { width: 80px; height: 80px; border-radius: 4px; object-fit: cover; }
+  .em-image { grid-column: 1 / -1; max-width: 100%; border-radius: 4px; }
+  .em-foot { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #B5BAC1; }
+
+  .auto-item { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .auto-item:last-child { border-bottom: none; }
+  .auto-info { min-width: 0; flex: 1 1 260px; font-size: 14px; line-height: 1.6; }
+  .auto-info small { color: var(--muted); }
+  .pill { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #26295A; margin-right: 6px; }
+  .empty { color: var(--muted); font-size: 14px; }
+  .notice { background: #26295A; border-radius: 12px; padding: 16px; font-size: 14px; line-height: 1.7; }
+
+  [hidden] { display: none !important; }
+  body { word-break: keep-all; overflow-wrap: anywhere; }
+  .auto-item .row { flex-wrap: nowrap; }
+  .auto-item .row > * { flex: 0 0 auto; }
+
+  /* ── 패드 (1024px 이하): 미리보기 → 편집 → 자동 메시지 목록 순서 ── */
+  @media (max-width: 1024px) {
+    .col-edit { flex-basis: 100%; order: 1; }
+    .col-prev { display: contents; }
+    .col-prev > .card { flex: 1 1 100%; min-width: 0; }
+    .col-prev > .card:first-child { order: 0; }
+    .col-prev > .card:last-child { order: 2; }
+  }
+
+  /* ── 폰 (640px 이하) ── */
+  @media (max-width: 640px) {
+    .bar { padding: 12px 14px; gap: 10px; }
+    .bar > label { flex: 1 1 100% !important; order: 3; }
+    .user span { display: none; }
+    main { padding: 20px 12px 60px; }
+    h1 { font-size: 24px; }
+    .card { padding: 16px; border-radius: 14px; }
+    .row > * { flex-basis: 100%; }
+    .row > label[style*="flex: 0"] { flex: 1 1 calc(50% - 6px) !important; }
+    .btn { width: 100%; min-height: 50px; }
+    .btn.small { width: auto; min-height: 40px; }
+    .row > div[style*="flex: 0 0 auto"] { flex: 1 1 100% !important; }
+    input[type=text], input[type=url], input[type=number], select, textarea { font-size: 16px; } /* 아이폰 확대 방지 */
+    .dc { padding: 12px; gap: 10px; font-size: 14px; }
+    .dc-ava { width: 36px; height: 36px; }
+    .em { padding: 10px 12px 12px; }
+    .em-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .em-thumb { width: 60px; height: 60px; }
+    .auto-item .row { width: 100%; }
+    .auto-item .btn.small { flex: 1; }
+  }
+  @media (max-width: 380px) {
+    .em-fields { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  /* ── 탭 레이아웃 ── */
+  .layout { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .side { flex: 0 0 220px; display: flex; flex-direction: column; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 10px; }
+  .side a { display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 10px; color: #C4C6DD; text-decoration: none; font-size: 15px; white-space: nowrap; }
+  .side a:hover { background: var(--panel2); color: var(--text); }
+  .side a[aria-current="page"] { background: #26295A; color: #fff; font-weight: 700; }
+  .content { flex: 999 1 560px; min-width: 0; }
+  .tab { display: flex; flex-direction: column; gap: 16px; }
+  .tab > h1 { margin: 0; }
+  .tab > .sub { margin: -8px 0 4px; }
+  .muted { color: var(--muted); font-weight: 400; font-size: 14px; }
+  .hint { margin: 0 0 12px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+  code { background: #26295A; border-radius: 6px; padding: 1px 6px; font-size: .92em; color: var(--accent-text); }
+  .cards2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 16px; }
+  .srv { display: flex; align-items: center; gap: 16px; }
+  .srv-icon { width: 64px; height: 64px; border-radius: 16px; background: var(--panel2); object-fit: cover; flex: none; }
+  .status { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 8px; }
+  .status li a { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; border-radius: 10px; background: var(--panel2); color: var(--text); text-decoration: none; font-size: 15px; }
+  .on { color: var(--ok); font-size: 13px; font-weight: 700; } .off { color: var(--muted); font-size: 13px; }
+
+  /* 스위치 */
+  .sw { flex-direction: row; align-items: center; gap: 14px; min-height: 56px; color: var(--text); font-size: 15px; cursor: pointer; border-bottom: 1px solid var(--line); }
+  .sw:last-of-type { border-bottom: none; }
+  .sw input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .sw-ui { flex: none; width: 46px; height: 26px; border-radius: 999px; background: #33366A; position: relative; transition: background .15s; }
+  .sw-ui::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #C4C6DD; transition: transform .15s, background .15s; }
+  .sw input:checked + .sw-ui { background: var(--btn); }
+  .sw input:checked + .sw-ui::after { transform: translateX(20px); background: #fff; }
+  .sw input:focus-visible + .sw-ui { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+  .sw > span:last-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .sw small { color: var(--muted); font-size: 13px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 6px 6px 12px; border-radius: 999px; background: #26295A; font-size: 14px; }
+  .chip button { width: 28px; height: 28px; border: none; border-radius: 50%; background: #33366A; color: var(--text); line-height: 1; }
+  .stack { display: flex; flex-direction: column; gap: 10px; }
+  .item { border: 1px solid var(--line2); border-radius: 12px; padding: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .item > label { flex: 1 1 200px; min-width: 0; }
+  .item > .grow { flex-basis: 100%; }
+  .savebar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+  .savebar .toast { margin: 0; }
+
+  @media (max-width: 1024px) {
+    .layout { gap: 16px; }
+    .side { flex: 1 1 100%; flex-direction: row; overflow-x: auto; padding: 6px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .side::-webkit-scrollbar { display: none; }
+    .side a { flex: none; }
+    .content { flex-basis: 100%; }
+  }
+  @media (max-width: 640px) {
+    .savebar .btn { flex: 1 1 100%; }
+    .item > label { flex-basis: 100%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <a class="brand" href="/">
+      <svg width="30" height="30" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#1B1E3D"/><polygon points="142,128 222,128 370,384 290,384" fill="#7B6BFF"/><rect x="124" y="128" width="58" height="256" rx="12" fill="#F2F2F7"/><rect x="330" y="128" width="58" height="256" rx="12" fill="#F2F2F7"/></svg>
+      NOVIX
+    </a>
+    <label style="flex: 0 1 280px">서버
+      <select id="guild"></select>
+    </label>
+    <div class="user"><img id="uava" alt=""><span id="uname"></span><a href="/logout">로그아웃</a></div>
+  </div>
+</header>
+
+<main>
+  <div id="noBot" class="notice" hidden></div>
+  <div class="layout" id="tabsWrap">
+  <nav class="side" aria-label="대시보드 메뉴">
+    <a href="#overview" data-tab="overview">개요</a>
+    <a href="#welcome" data-tab="welcome">환영 · 역할 · 로그</a>
+    <a href="#automod" data-tab="automod">자동모더</a>
+    <a href="#warn" data-tab="warn">경고 처벌</a>
+    <a href="#levels" data-tab="levels">레벨</a>
+    <a href="#verify" data-tab="verify">인증</a>
+    <a href="#autoresp" data-tab="autoresp">자동응답</a>
+    <a href="#embed" data-tab="embed">임베드 · 자동 메시지</a>
+  </nav>
+  <div class="content">
+  <!-- 개요 -->
+  <section class="tab" id="tab-overview" hidden>
+    <h1>개요</h1>
+    <p class="sub">서버 상태를 한눈에 보고, 메뉴에서 설정을 바꿔요.</p>
+    <div class="cards2">
+      <section class="card srv">
+        <img id="ovIcon" alt="" class="srv-icon">
+        <div>
+          <h2 id="ovName" style="margin: 0 0 4px"></h2>
+          <p class="muted" id="ovMembers" style="margin: 0"></p>
+        </div>
+      </section>
+      <section class="card">
+        <h2>플랜</h2>
+        <p id="ovPlan" style="margin: 0; line-height: 1.7"></p>
+        <p style="margin: 10px 0 0"><a href="/plans">플랜 보기 →</a></p>
+      </section>
+    </div>
+    <section class="card">
+      <h2>기능 상태</h2>
+      <ul class="status" id="ovStatus"></ul>
+    </section>
+  </section>
+
+  <!-- 환영 · 역할 · 로그 -->
+  <section class="tab" id="tab-welcome" hidden>
+    <h1>환영 · 역할 · 로그</h1>
+    <p class="sub">새로 들어온 사람에게 보낼 메시지와 자동 역할, 로그 채널을 정해요.</p>
+    <div class="grid">
+      <div class="col-edit">
+        <section class="card">
+          <h2>채널 · 역할</h2>
+          <div class="row">
+            <label>로그 채널 (처벌·삭제·입퇴장 기록)<select id="w_logChannel" data-kind="channel"></select></label>
+            <label>환영 채널<select id="w_welcomeChannel" data-kind="channel"></select></label>
+          </div>
+          <div class="row" style="margin-top: 12px">
+            <label>자동 역할 (들어오면 바로 줄 역할)<select id="w_autoRole" data-kind="role"></select></label>
+          </div>
+        </section>
+        <section class="card">
+          <h2>환영 메시지</h2>
+          <p class="hint">쓸 수 있는 변수: <code>{user}</code> 멘션 · <code>{username}</code> 이름 · <code>{server}</code> 서버 이름 · <code>{count}</code> 멤버 수</p>
+          <label>입장 메시지<textarea id="w_welcomeMessage" maxlength="1000"></textarea></label>
+          <label style="margin-top: 12px">퇴장 메시지 (비우면 안 보냄)<textarea id="w_leaveMessage" maxlength="1000" style="min-height: 64px"></textarea></label>
+        </section>
+        <section class="card">
+          <h2>환영 임베드</h2>
+          <label class="sw"><input type="checkbox" id="we_enabled"><span class="sw-ui" aria-hidden="true"></span><span><b>임베드로 보내기</b><small>끄면 일반 글자로 보내요</small></span></label>
+          <div class="row" style="margin-top: 8px">
+            <label>제목<input type="text" id="we_title" maxlength="256" placeholder="{server}에 오신 걸 환영해요"></label>
+            <label style="flex: 0 0 auto">색<input type="color" id="we_color" value="#7b6bff"></label>
+          </div>
+          <div class="row" style="margin-top: 12px">
+            <label>큰 배너 이미지 주소<input type="url" id="we_image" placeholder="https://..."></label>
+            <label>푸터<input type="text" id="we_footer" maxlength="200" placeholder="{count}번째 멤버"></label>
+          </div>
+          <label class="sw"><input type="checkbox" id="we_showAvatar"><span class="sw-ui" aria-hidden="true"></span><span><b>들어온 사람 프로필 사진</b><small>오른쪽 위에 작게</small></span></label>
+          <label class="sw"><input type="checkbox" id="we_mention"><span class="sw-ui" aria-hidden="true"></span><span><b>@멘션 같이 보내기</b><small>알림이 가요</small></span></label>
+        </section>
+        <div class="savebar">
+          <button class="btn" type="button" data-save="welcome">저장</button>
+          <button class="btn ghost" type="button" id="welcomeTest">환영 채널에 테스트 보내기</button>
+          <p class="toast" data-msg="welcome" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+      <div class="col-prev">
+        <section class="card">
+          <h2>미리보기</h2>
+          <div class="dc" id="wPreview"></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- 자동모더 -->
+  <section class="tab" id="tab-automod" hidden>
+    <h1>자동모더</h1>
+    <p class="sub">관리자와 메시지 관리 권한이 있는 사람은 검사에서 빠져요.</p>
+    <section class="card">
+      <label class="sw"><input type="checkbox" id="am_enabled"><span class="sw-ui" aria-hidden="true"></span><span><b>자동모더 사용</b><small>아래 규칙 전체 켜기/끄기</small></span></label>
+      <label class="sw"><input type="checkbox" id="am_blockInvites"><span class="sw-ui" aria-hidden="true"></span><span><b>초대링크 차단</b><small>discord.gg 링크 자동 삭제</small></span></label>
+      <label class="sw"><input type="checkbox" id="am_blockLinks"><span class="sw-ui" aria-hidden="true"></span><span><b>모든 링크 차단</b><small>http 링크가 들어간 메시지 삭제</small></span></label>
+      <label class="sw"><input type="checkbox" id="am_antiSpam"><span class="sw-ui" aria-hidden="true"></span><span><b>도배 방지</b><small>5초에 5개 이상 → 1분 타임아웃</small></span></label>
+      <div class="row" style="margin-top: 8px">
+        <label style="flex: 0 1 280px">신규 계정 자동 킥 (가입 N일 미만, 0 = 끄기)<input type="number" id="am_minAccountAgeDays" min="0" max="365"></label>
+      </div>
+    </section>
+    <section class="card">
+      <h2>금지어 <small class="muted" id="am_count"></small></h2>
+      <div class="row" style="align-items: flex-end">
+        <label>단어 추가 (쉼표로 여러 개)<input type="text" id="am_wordInput" placeholder="단어1, 단어2"></label>
+        <div style="flex: 0 0 auto"><button class="btn ghost" type="button" id="am_addWord">추가</button></div>
+      </div>
+      <div class="chips" id="am_words"></div>
+    </section>
+    <div class="savebar">
+      <button class="btn" type="button" data-save="automod">저장</button>
+      <p class="toast" data-msg="automod" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- 경고 처벌 -->
+  <section class="tab" id="tab-warn" hidden>
+    <h1>경고 처벌</h1>
+    <p class="sub"><code>/경고</code>가 이 횟수만큼 쌓이면 자동으로 처벌해요. 0이면 꺼져요.</p>
+    <section class="card">
+      <div class="row">
+        <label>🔇 1시간 타임아웃 (회)<input type="number" id="wt_timeout" min="0" max="50"></label>
+        <label>👢 추방 (회)<input type="number" id="wt_kick" min="0" max="50"></label>
+        <label>🔨 차단 (회)<input type="number" id="wt_ban" min="0" max="50"></label>
+      </div>
+    </section>
+    <div class="savebar">
+      <button class="btn" type="button" data-save="warn">저장</button>
+      <p class="toast" data-msg="warn" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- 레벨 -->
+  <section class="tab" id="tab-levels" hidden>
+    <h1>레벨</h1>
+    <p class="sub">채팅하면 XP가 쌓여요 (1분에 한 번). 레벨이 오르면 알림과 보상 역할을 줘요.</p>
+    <section class="card">
+      <label class="sw"><input type="checkbox" id="lv_enabled"><span class="sw-ui" aria-hidden="true"></span><span><b>레벨 시스템 사용</b><small><code>/레벨 보기</code>, <code>/레벨 랭킹</code></small></span></label>
+      <div class="row" style="margin-top: 8px">
+        <label>레벨업 알림 채널<select id="lv_channel" data-kind="channel" data-empty="(그 사람이 채팅한 채널)"></select></label>
+      </div>
+      <label style="margin-top: 12px">레벨업 메시지 (<code>{user}</code> <code>{level}</code>)<input type="text" id="lv_message" maxlength="500"></label>
+    </section>
+    <section class="card">
+      <h2>레벨 보상 역할 <small class="muted" id="lv_count"></small></h2>
+      <div id="lv_rewards" class="stack"></div>
+      <div style="margin-top: 12px"><button class="btn ghost small" type="button" id="lv_add">+ 보상 추가</button></div>
+    </section>
+    <div class="savebar">
+      <button class="btn" type="button" data-save="levels">저장</button>
+      <p class="toast" data-msg="levels" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- 인증 -->
+  <section class="tab" id="tab-verify" hidden>
+    <h1>인증</h1>
+    <p class="sub">인증 버튼을 누르면 사이트에서 검사 후 역할을 줘요. 막힌 기록은 로그 채널에 남아요.</p>
+    <section class="card">
+      <div class="row">
+        <label>인증하면 줄 역할<select id="vf_verifyRole" data-kind="role"></select></label>
+        <label>방식
+          <select id="vf_mode"><option value="web">웹 인증 (사람 확인 · VPN · 부계정 검사)</option><option value="button">버튼만 (바로 역할 지급)</option></select>
+        </label>
+      </div>
+      <label class="sw"><input type="checkbox" id="vf_blockVpn"><span class="sw-ui" aria-hidden="true"></span><span><b>VPN · 프록시 차단</b><small>웹 인증일 때만</small></span></label>
+      <label class="sw"><input type="checkbox" id="vf_blockAlts"><span class="sw-ui" aria-hidden="true"></span><span><b>부계정 차단</b><small>같은 IP로 이미 인증한 계정이 있으면 막아요 (가족·같은 와이파이도 막힐 수 있어요)</small></span></label>
+      <div class="row" style="margin-top: 8px">
+        <label style="flex: 0 1 280px">디스코드 가입 N일 미만 차단 (0 = 끄기)<input type="number" id="vf_minAccountAgeDays" min="0" max="365"></label>
+      </div>
+      <p class="hint" id="vf_webNote" hidden>⚠️ 사이트 주소(PUBLIC_URL)가 설정되지 않아 웹 인증을 쓸 수 없어요.</p>
+    </section>
+    <div class="savebar">
+      <button class="btn" type="button" data-save="verify">저장</button>
+      <p class="toast" data-msg="verify" role="status" aria-live="polite"></p>
+    </div>
+    <section class="card">
+      <h2>인증 메시지 보내기</h2>
+      <p class="hint">설정을 저장한 다음, 인증 버튼이 달린 메시지를 채널에 올려요.</p>
+      <div class="row">
+        <label>보낼 채널<select id="vp_channel" data-kind="channel" data-empty="(채널 선택)"></select></label>
+        <label>버튼 글자<input type="text" id="vp_buttonLabel" maxlength="80" placeholder="인증하기"></label>
+      </div>
+      <div class="row" style="margin-top: 12px">
+        <label>제목<input type="text" id="vp_title" maxlength="256" placeholder="🔐 서버 인증"></label>
+        <label style="flex: 0 0 auto">색<input type="color" id="vp_color" value="#7b6bff"></label>
+      </div>
+      <label style="margin-top: 12px">문구<textarea id="vp_description" maxlength="2000" placeholder="서버 규칙을 읽었다면 아래 버튼을 눌러 인증해주세요."></textarea></label>
+      <label style="margin-top: 12px">큰 이미지 주소<input type="url" id="vp_image" placeholder="https://..."></label>
+      <div class="savebar" style="margin-top: 16px; padding: 0; border: none; background: none">
+        <button class="btn" type="button" id="vp_send">인증 메시지 보내기</button>
+        <p class="toast" id="vp_msg" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+  </section>
+
+  <!-- 자동응답 -->
+  <section class="tab" id="tab-autoresp" hidden>
+    <h1>자동응답</h1>
+    <p class="sub">키워드가 들어간 메시지에 봇이 자동으로 대답해요. 대답에 <code>{user}</code> <code>{username}</code> <code>{server}</code>를 쓸 수 있어요.</p>
+    <section class="card">
+      <h2>목록 <small class="muted" id="ar_count"></small></h2>
+      <div id="ar_list" class="stack"></div>
+      <div style="margin-top: 12px"><button class="btn ghost small" type="button" id="ar_add">+ 자동응답 추가</button></div>
+    </section>
+    <div class="savebar">
+      <button class="btn" type="button" data-save="autoResponses">저장</button>
+      <p class="toast" data-msg="autoResponses" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-embed" hidden>
+  <h1>임베드 · 자동 메시지</h1>
+  <p class="sub">꾸미고 바로 보내거나, 정해진 간격마다 자동으로 보내게 예약하세요.</p>
+  <div class="grid" id="workspace">
+    <div class="col-edit">
+      <section class="card">
+        <h2>보낼 곳</h2>
+        <div class="row">
+          <label>채널<select id="channel"></select></label>
+        </div>
+        <label class="check" style="margin-top: 8px"><input type="checkbox" id="useHook"> 웹훅으로 보내기 (원하는 이름 · 프로필 사진)</label>
+        <div class="row" id="hookRow" hidden>
+          <label>보내는 이름<input type="text" id="hookName" maxlength="80" placeholder="공지봇"></label>
+          <label>프로필 사진 주소<input type="url" id="hookAvatar" placeholder="https://..."></label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>메시지</h2>
+        <label>일반 메시지 (임베드 위에 표시)<textarea id="content" maxlength="2000" placeholder="@everyone 공지예요!"></textarea></label>
+      </section>
+
+      <section class="card">
+        <h2>임베드</h2>
+        <div style="display: flex; flex-direction: column; gap: 12px">
+          <div class="row">
+            <label style="flex: 0 0 auto">색<input type="color" id="color" value="#7b6bff"></label>
+            <label>작성자 이름<input type="text" id="authorName" maxlength="256"></label>
+            <label>작성자 아이콘 주소<input type="url" id="authorIcon" placeholder="https://..."></label>
+          </div>
+          <div class="row">
+            <label>제목<input type="text" id="title" maxlength="256"></label>
+            <label>제목 링크<input type="url" id="url" placeholder="https://..."></label>
+          </div>
+          <label>설명 (**굵게**, *기울임*, [링크](주소) 같은 디스코드 문법 그대로 써도 돼요)<textarea id="description" maxlength="4096" style="min-height: 140px"></textarea></label>
+          <div class="row">
+            <label>썸네일 (오른쪽 작은 이미지)<input type="url" id="thumbnail" placeholder="https://..."></label>
+            <label>큰 이미지<input type="url" id="image" placeholder="https://... (/이미지링크로 만든 주소 OK)"></label>
+          </div>
+          <div id="fields" style="display: flex; flex-direction: column; gap: 10px"></div>
+          <div><button class="btn ghost small" id="addField" type="button">+ 필드 추가</button></div>
+          <div class="row">
+            <label>푸터<input type="text" id="footerText" maxlength="2048"></label>
+            <label>푸터 아이콘 주소<input type="url" id="footerIcon" placeholder="https://..."></label>
+          </div>
+          <label class="check"><input type="checkbox" id="timestamp"> 보낸 시간 표시</label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>보내기</h2>
+        <div class="row" style="align-items: flex-end">
+          <div style="flex: 0 0 auto"><button class="btn" id="send" type="button">지금 보내기</button></div>
+          <p class="toast" id="sendMsg" role="status" aria-live="polite" style="margin: 0; align-self: center"></p>
+        </div>
+        <details style="margin-top: 16px">
+          <summary>⏱️ 반복 예약으로 저장하기</summary>
+          <div class="row" style="margin-top: 12px; align-items: flex-end">
+            <label style="flex: 0 1 120px">간격<input type="number" id="every" min="1" value="3"></label>
+            <label style="flex: 0 1 140px">단위
+              <select id="unit"><option value="1">분</option><option value="60" selected>시간</option><option value="1440">일</option></select>
+            </label>
+            <label class="check" style="flex: 1 1 200px"><input type="checkbox" id="sendNow"> 지금 한 번 보내고 시작</label>
+            <div style="flex: 0 0 auto"><button class="btn ghost" id="saveAuto" type="button">예약 저장</button></div>
+          </div>
+          <p class="toast" id="autoMsg" role="status" aria-live="polite"></p>
+        </details>
+      </section>
+    </div>
+
+    <div class="col-prev">
+      <section class="card">
+        <h2>미리보기</h2>
+        <div class="dc" id="preview"></div>
+      </section>
+      <section class="card">
+        <h2>자동 메시지 목록</h2>
+        <div id="autoList"><p class="empty">불러오는 중...</p></div>
+      </section>
+    </div>
+  </div>
+  </section>
+  </div>
+  </div>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const state = { me: null, guild: null, fields: [] };
+  const isUrl = (v) => /^https?:\/\/\S+$/i.test((v || '').trim());
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+    if (res.status === 401) { location.href = '/login'; throw new Error('로그인이 필요해요'); }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || '오류가 났어요');
+    return data;
+  }
+
+  function toast(el, text, ok) { el.textContent = text; el.className = 'toast ' + (ok ? 'ok' : 'err'); }
+
+  // ── 필드 ──
+  function renderFields() {
+    const box = $('fields');
+    box.replaceChildren();
+    state.fields.forEach((f, i) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'field-item';
+      const head = document.createElement('div');
+      head.className = 'field-head';
+      head.textContent = `필드 ${i + 1}`;
+      const del = document.createElement('button');
+      del.type = 'button'; del.className = 'btn ghost small'; del.textContent = '삭제';
+      del.setAttribute('aria-label', `필드 ${i + 1} 삭제`);
+      del.onclick = () => { state.fields.splice(i, 1); renderFields(); renderPreview(); };
+      head.append(del);
+
+      const mk = (labelText, key, tag) => {
+        const l = document.createElement('label'); l.textContent = labelText;
+        const inp = document.createElement(tag); if (tag === 'input') inp.type = 'text';
+        inp.value = f[key] || ''; inp.maxLength = key === 'name' ? 256 : 1024;
+        inp.oninput = () => { f[key] = inp.value; renderPreview(); };
+        l.append(inp); return l;
+      };
+      const inl = document.createElement('label'); inl.className = 'check';
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!f.inline;
+      cb.onchange = () => { f.inline = cb.checked; renderPreview(); };
+      inl.append(cb, ' 한 줄에 나란히 (inline)');
+      wrap.append(head, mk('이름', 'name', 'input'), mk('내용', 'value', 'textarea'), inl);
+      box.append(wrap);
+    });
+    $('addField').disabled = state.fields.length >= 25;
+  }
+  $('addField').onclick = () => { state.fields.push({ name: '', value: '', inline: false }); renderFields(); renderPreview(); };
+
+  // ── 데이터 모으기 ──
+  function collect() {
+    const v = (id) => $(id).value.trim();
+    return {
+      channelId: $('channel').value,
+      content: $('content').value,
+      webhook: $('useHook').checked && v('hookName') ? { name: v('hookName'), avatar: v('hookAvatar') } : null,
+      embed: {
+        color: $('color').value,
+        author: { name: v('authorName'), icon: v('authorIcon') },
+        title: v('title'), url: v('url'), description: $('description').value,
+        thumbnail: v('thumbnail'), image: v('image'),
+        fields: state.fields.filter((f) => f.name.trim() && f.value.trim()),
+        footer: { text: v('footerText'), icon: v('footerIcon') },
+        timestamp: $('timestamp').checked,
+      },
+    };
+  }
+
+  // ── 미리보기 ──
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function img(src, cls) { const i = document.createElement('img'); i.src = src; i.alt = ''; if (cls) i.className = cls; i.referrerPolicy = 'no-referrer'; return i; }
+
+  function renderPreview() {
+    const p = collect();
+    const box = $('preview');
+    box.replaceChildren();
+    const hook = p.webhook;
+    const bot = state.me?.bot || { name: 'NOVIX', avatar: '/icon.svg' };
+    const ava = img(hook && isUrl(hook.avatar) ? hook.avatar : bot.avatar, 'dc-ava');
+    const body = el('div', 'dc-body');
+    const name = el('div', 'dc-name', hook ? hook.name : bot.name);
+    name.append(el('span', 'dc-tag', '앱'));
+    body.append(name);
+    if (p.content.trim()) body.append(el('div', 'dc-content', p.content));
+
+    const e = p.embed;
+    const hasEmbed = e.title || e.description.trim() || e.author.name || e.footer.text || isUrl(e.image) || isUrl(e.thumbnail) || e.fields.length;
+    if (hasEmbed) {
+      const em = el('div', 'em');
+      em.style.borderLeftColor = e.color;
+      const main = el('div', 'em-main');
+      if (e.author.name) {
+        const a = el('div', 'em-author');
+        if (isUrl(e.author.icon)) a.append(img(e.author.icon));
+        a.append(el('span', null, e.author.name));
+        main.append(a);
+      }
+      if (e.title) main.append(el('div', 'em-title' + (isUrl(e.url) ? ' link' : ''), e.title));
+      if (e.description.trim()) main.append(el('div', 'em-desc', e.description));
+      if (e.fields.length) {
+        const fs = el('div', 'em-fields');
+        e.fields.forEach((f) => {
+          const fe = el('div', 'em-field' + (f.inline ? ' inline' : ''));
+          fe.append(el('b', null, f.name), el('span', null, f.value));
+          fs.append(fe);
+        });
+        main.append(fs);
+      }
+      em.append(main);
+      if (isUrl(e.thumbnail)) em.append(img(e.thumbnail, 'em-thumb'));
+      if (isUrl(e.image)) em.append(img(e.image, 'em-image'));
+      if (e.footer.text || e.timestamp) {
+        const ft = el('div', 'em-foot');
+        if (isUrl(e.footer.icon) && e.footer.text) ft.append(img(e.footer.icon));
+        const t = [e.footer.text, e.timestamp ? '오늘 ' + new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' }) : ''].filter(Boolean).join(' • ');
+        ft.append(el('span', null, t));
+        em.append(ft);
+      }
+      body.append(em);
+    }
+    if (!p.content.trim() && !hasEmbed) body.append(el('div', 'dc-content', '(아직 비어 있어요)'));
+    box.append(ava, body);
+  }
+
+  document.querySelectorAll('#workspace input, #workspace textarea, #workspace select').forEach((x) => x.addEventListener('input', renderPreview));
+  $('useHook').addEventListener('change', () => { $('hookRow').hidden = !$('useHook').checked; renderPreview(); });
+
+  // ── 서버 · 채널 ──
+  async function selectGuild(id) {
+    const g = state.me.guilds.find((x) => x.id === id);
+    state.guild = g;
+    $('noBot').hidden = true;
+    $('tabsWrap').hidden = false;
+    if (!g?.botIn) {
+      $('tabsWrap').hidden = true;
+      $('noBot').hidden = false;
+      $('noBot').replaceChildren(el('div', null, `NOVIX가 아직 "${g ? g.name : ''}" 서버에 없어요. `));
+      const a = el('a', null, '봇 초대하기 →');
+      a.href = '/invite?guild=' + encodeURIComponent(id);
+      $('noBot').firstChild.append(a);
+      return;
+    }
+    const { channels } = await api(`/api/guilds/${id}/channels`);
+    const sel = $('channel');
+    sel.replaceChildren();
+    channels.forEach((c) => {
+      const o = document.createElement('option');
+      o.value = c.id; o.textContent = (c.category ? c.category + ' / ' : '') + '#' + c.name;
+      sel.append(o);
+    });
+    loadAuto();
+    window.dispatchEvent(new CustomEvent('novix:guild', { detail: id }));
+  }
+
+  // ── 보내기 ──
+  $('send').onclick = async () => {
+    const btn = $('send'); btn.disabled = true;
+    try {
+      await api(`/api/guilds/${state.guild.id}/send`, { method: 'POST', body: JSON.stringify(collect()) });
+      toast($('sendMsg'), '✅ 보냈어요!', true);
+    } catch (err) { toast($('sendMsg'), '❌ ' + err.message, false); }
+    btn.disabled = false;
+  };
+
+  $('saveAuto').onclick = async () => {
+    const minutes = Number($('every').value) * Number($('unit').value);
+    const btn = $('saveAuto'); btn.disabled = true;
+    try {
+      await api(`/api/guilds/${state.guild.id}/auto`, {
+        method: 'POST',
+        body: JSON.stringify({ ...collect(), intervalMinutes: minutes, sendNow: $('sendNow').checked }),
+      });
+      toast($('autoMsg'), '✅ 예약했어요!', true);
+      loadAuto();
+    } catch (err) { toast($('autoMsg'), '❌ ' + err.message, false); }
+    btn.disabled = false;
+  };
+
+  // ── 자동 메시지 목록 ──
+  function every(min) {
+    if (min % 1440 === 0) return `${min / 1440}일마다`;
+    if (min % 60 === 0) return `${min / 60}시간마다`;
+    return `${min}분마다`;
+  }
+  async function loadAuto() {
+    const box = $('autoList');
+    try {
+      const { items } = await api(`/api/guilds/${state.guild.id}/auto`);
+      box.replaceChildren();
+      if (!items.length) { box.append(el('p', 'empty', '아직 없어요. 왼쪽에서 꾸미고 "반복 예약으로 저장하기"를 눌러보세요.')); return; }
+      items.forEach((a) => {
+        const row = el('div', 'auto-item');
+        const info = el('div', 'auto-info');
+        const top = el('div');
+        top.append(el('span', 'pill', a.enabled ? '켜짐' : '멈춤'), el('span', 'pill', every(a.intervalMinutes)), document.createTextNode('#' + a.channelName));
+        const prev = el('div', null, (a.webhookName ? `[${a.webhookName}] ` : '') + a.preview);
+        const next = el('small', null, '다음 전송: ' + new Date(a.nextRun).toLocaleString('ko-KR'));
+        info.append(top, prev, next);
+        const actions = el('div', 'row');
+        actions.style.flex = '0 0 auto';
+        const t = el('button', 'btn ghost small', a.enabled ? '멈추기' : '다시 켜기'); t.type = 'button';
+        t.onclick = async () => { await api(`/api/guilds/${state.guild.id}/auto/${a.id}/toggle`, { method: 'POST', body: '{}' }); loadAuto(); };
+        const d = el('button', 'btn ghost small', '삭제'); d.type = 'button';
+        d.onclick = async () => { if (confirm('이 자동 메시지를 삭제할까요?')) { await api(`/api/guilds/${state.guild.id}/auto/${a.id}`, { method: 'DELETE' }); loadAuto(); } };
+        actions.append(t, d);
+        row.append(info, actions);
+        box.append(row);
+      });
+    } catch (err) { box.replaceChildren(el('p', 'empty', '❌ ' + err.message)); }
+  }
+
+  // ── 시작 ──
+  (async () => {
+    state.me = await api('/api/me');
+    $('uname').textContent = state.me.user.name;
+    $('uava').src = state.me.user.avatar ? `https://cdn.discordapp.com/avatars/${state.me.user.id}/${state.me.user.avatar}.png?size=64` : '/icon.svg';
+    window.__novixMe = { user: state.me.user, avatarUrl: $('uava').src };
+    if (state.me.isOwner) {
+      const a = document.createElement('a'); a.href = '/admin'; a.textContent = '관리자'; a.style.fontWeight = '700';
+      document.querySelector('.user').prepend(a);
+    }
+    const sel = $('guild');
+    if (!state.me.guilds.length) {
+      $('tabsWrap').hidden = true; $('noBot').hidden = false;
+      $('noBot').textContent = '관리 권한이 있는 서버가 없어요. 서버 관리 권한이 있는 계정으로 로그인해주세요.';
+      return;
+    }
+    state.me.guilds.forEach((g) => {
+      const o = document.createElement('option');
+      o.value = g.id; o.textContent = g.name + (g.botIn ? '' : ' (봇 초대 필요)');
+      sel.append(o);
+    });
+    sel.onchange = () => selectGuild(sel.value).catch((e) => alert(e.message));
+    renderFields();
+    renderPreview();
+    await selectGuild(sel.value);
+  })().catch((e) => { document.querySelector('main').prepend(el('p', 'toast err', '❌ ' + e.message)); });
+})();
+</script>
+
+<script>
+// ── 서버 설정 탭 ──
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let gid = null;
+  let D = null; // /settings 응답
+  const work = { words: [], rewards: [], responses: [] };
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+    if (res.status === 401) { location.href = '/login'; throw new Error('로그인이 필요해요'); }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || '오류가 났어요');
+    return data;
+  }
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const msg = (key, text, ok) => { const m = typeof key === 'string' ? document.querySelector(`[data-msg="${key}"]`) : key; if (m) { m.textContent = text; m.className = 'toast ' + (ok ? 'ok' : 'err'); } };
+
+  // ── 탭 전환 (#주소로) ──
+  const TABS = ['overview', 'welcome', 'automod', 'warn', 'levels', 'verify', 'autoresp', 'embed'];
+  function showTab() {
+    const name = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'overview';
+    TABS.forEach((t) => { $('tab-' + t).hidden = t !== name; });
+    document.querySelectorAll('.side a').forEach((a) => { if (a.dataset.tab === name) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    const cur = document.querySelector(`.side a[data-tab="${name}"]`);
+    if (cur && matchMedia('(max-width: 1024px)').matches) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
+    if (name === 'welcome') renderWelcomePreview();
+  }
+  window.addEventListener('hashchange', showTab);
+  showTab();
+
+  // ── 채널 · 역할 선택칸 채우기 ──
+  function fillSelect(sel, value) {
+    const kind = sel.dataset.kind;
+    sel.replaceChildren();
+    const none = el('option', null, sel.dataset.empty || '(사용 안 함)'); none.value = ''; sel.append(none);
+    if (kind === 'channel') {
+      D.channels.filter((c) => c.canSend || c.id === value).forEach((c) => {
+        const o = el('option', null, (c.category ? c.category + ' / ' : '') + '#' + c.name); o.value = c.id; sel.append(o);
+      });
+    } else {
+      D.roles.forEach((r) => {
+        const o = el('option', null, '@' + r.name + (r.assignable ? '' : '  (NOVIX보다 높아서 못 줌)')); o.value = r.id; o.disabled = !r.assignable && r.id !== value; sel.append(o);
+      });
+    }
+    sel.value = value || '';
+  }
+  const setChecked = (id, v) => { $(id).checked = !!v; };
+  const setVal = (id, v) => { $(id).value = v ?? ''; };
+
+  // ── 화면에 값 넣기 ──
+  function render() {
+    const s = D.settings;
+    // 개요
+    $('ovName').textContent = D.guild.name;
+    $('ovIcon').src = D.guild.icon || '/icon.svg';
+    $('ovMembers').textContent = `멤버 ${D.guild.memberCount.toLocaleString('ko-KR')}명`;
+    $('ovPlan').textContent = D.premium
+      ? `💎 ${D.premium.plan === 'premium_plus' ? '프리미엄+' : '프리미엄'} · ${new Date(D.premium.expiresAt).toLocaleDateString('ko-KR')}까지`
+      : `무료 플랜 · 금지어 ${D.limits.badWords} · 자동응답 ${D.limits.autoResponses} · 레벨 보상 ${D.limits.levelRewards}개까지`;
+    const st = [
+      ['로그 채널', !!s.logChannel, 'welcome'], ['환영 메시지', !!s.welcomeChannel, 'welcome'], ['자동 역할', !!s.autoRole, 'welcome'],
+      ['자동모더', s.automod.enabled, 'automod'], ['레벨', s.levels.enabled, 'levels'], ['인증', !!s.verifyRole, 'verify'],
+      ['자동응답', s.autoResponses.length > 0, 'autoresp'], ['경고 자동 처벌', !!(s.warnThresholds.timeout || s.warnThresholds.kick || s.warnThresholds.ban), 'warn'],
+    ];
+    $('ovStatus').replaceChildren(...st.map(([name, on, tab]) => {
+      const li = el('li'); const a = el('a'); a.href = '#' + tab;
+      a.append(el('span', null, name), el('span', on ? 'on' : 'off', on ? '● 켜짐' : '꺼짐')); li.append(a); return li;
+    }));
+
+    // 환영
+    document.querySelectorAll('select[data-kind]').forEach((sel) => {
+      const map = { w_logChannel: s.logChannel, w_welcomeChannel: s.welcomeChannel, w_autoRole: s.autoRole, lv_channel: s.levels.channel, vf_verifyRole: s.verifyRole, vp_channel: '' };
+      fillSelect(sel, map[sel.id]);
+    });
+    setVal('w_welcomeMessage', s.welcomeMessage); setVal('w_leaveMessage', s.leaveMessage);
+    const w = s.welcomeEmbed;
+    setChecked('we_enabled', w.enabled); setVal('we_title', w.title); setVal('we_color', w.color || '#7b6bff');
+    setVal('we_image', w.image); setVal('we_footer', w.footer); setChecked('we_showAvatar', w.showAvatar); setChecked('we_mention', w.mention);
+
+    // 자동모더
+    const am = s.automod;
+    ['enabled', 'blockInvites', 'blockLinks', 'antiSpam'].forEach((k) => setChecked('am_' + k, am[k]));
+    setVal('am_minAccountAgeDays', am.minAccountAgeDays);
+    work.words = [...am.badWords]; renderWords();
+
+    // 경고
+    setVal('wt_timeout', s.warnThresholds.timeout); setVal('wt_kick', s.warnThresholds.kick); setVal('wt_ban', s.warnThresholds.ban);
+
+    // 레벨
+    setChecked('lv_enabled', s.levels.enabled); setVal('lv_message', s.levels.message);
+    work.rewards = Object.entries(s.levels.rewards).map(([level, roleId]) => ({ level: Number(level), roleId })).sort((a, b) => a.level - b.level);
+    renderRewards();
+
+    // 인증
+    setVal('vf_mode', s.verify.mode); setChecked('vf_blockVpn', s.verify.blockVpn); setChecked('vf_blockAlts', s.verify.blockAlts);
+    setVal('vf_minAccountAgeDays', s.verify.minAccountAgeDays);
+    $('vf_webNote').hidden = D.webVerifyAvailable;
+
+    // 자동응답
+    work.responses = s.autoResponses.map((r) => ({ ...r })); renderResponses();
+    renderWelcomePreview();
+  }
+
+  // ── 금지어 ──
+  function renderWords() {
+    $('am_count').textContent = `${work.words.length} / ${D.limits.badWords}`;
+    $('am_words').replaceChildren(...work.words.map((w, i) => {
+      const c = el('span', 'chip', w); const b = el('button', null, '×'); b.type = 'button'; b.setAttribute('aria-label', `${w} 삭제`);
+      b.onclick = () => { work.words.splice(i, 1); renderWords(); }; c.append(b); return c;
+    }));
+  }
+  function addWords() {
+    const list = $('am_wordInput').value.split(/[,，]/).map((x) => x.trim()).filter(Boolean);
+    list.forEach((w) => { if (!work.words.includes(w)) work.words.push(w); });
+    $('am_wordInput').value = ''; renderWords();
+  }
+  $('am_addWord').onclick = addWords;
+  $('am_wordInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addWords(); } });
+
+  // ── 레벨 보상 ──
+  function renderRewards() {
+    $('lv_count').textContent = `${work.rewards.length} / ${D.limits.levelRewards}`;
+    $('lv_rewards').replaceChildren(...work.rewards.map((r, i) => {
+      const row = el('div', 'item');
+      const l1 = el('label', null, '레벨'); const n = el('input'); n.type = 'number'; n.min = 1; n.max = 500; n.value = r.level; n.oninput = () => { r.level = Number(n.value); }; l1.append(n); l1.style.flex = '0 1 120px';
+      const l2 = el('label', null, '줄 역할'); const sel = el('select'); sel.dataset.kind = 'role'; fillSelect(sel, r.roleId); sel.onchange = () => { r.roleId = sel.value; }; l2.append(sel);
+      const del = el('button', 'btn ghost small', '삭제'); del.type = 'button'; del.setAttribute('aria-label', `레벨 ${r.level} 보상 삭제`); del.onclick = () => { work.rewards.splice(i, 1); renderRewards(); };
+      row.append(l1, l2, del); return row;
+    }));
+    if (!work.rewards.length) $('lv_rewards').append(el('p', 'empty', '아직 없어요. 예: 레벨 10이 되면 @단골 역할'));
+    $('lv_add').disabled = work.rewards.length >= D.limits.levelRewards;
+  }
+  $('lv_add').onclick = () => { const last = work.rewards.at(-1); work.rewards.push({ level: last ? last.level + 5 : 5, roleId: '' }); renderRewards(); };
+
+  // ── 자동응답 ──
+  function renderResponses() {
+    $('ar_count').textContent = `${work.responses.length} / ${D.limits.autoResponses}`;
+    $('ar_list').replaceChildren(...work.responses.map((r, i) => {
+      const row = el('div', 'item');
+      const l1 = el('label', null, '키워드'); const t = el('input'); t.type = 'text'; t.maxLength = 100; t.value = r.trigger || ''; t.oninput = () => { r.trigger = t.value; }; l1.append(t);
+      const l3 = el('label', 'check'); const cb = el('input'); cb.type = 'checkbox'; cb.checked = !!r.exact; cb.onchange = () => { r.exact = cb.checked; }; l3.append(cb, ' 정확히 일치할 때만'); l3.style.flex = '0 1 auto';
+      const del = el('button', 'btn ghost small', '삭제'); del.type = 'button'; del.setAttribute('aria-label', `자동응답 ${i + 1} 삭제`); del.onclick = () => { work.responses.splice(i, 1); renderResponses(); };
+      const l2 = el('label', 'grow', '대답'); const ta = el('textarea'); ta.maxLength = 1500; ta.value = r.response || ''; ta.style.minHeight = '64px'; ta.oninput = () => { r.response = ta.value; }; l2.append(ta);
+      row.append(l1, l3, del, l2); return row;
+    }));
+    if (!work.responses.length) $('ar_list').append(el('p', 'empty', '아직 없어요. 예: "규칙" → "#규칙 채널을 읽어주세요!"'));
+    $('ar_add').disabled = work.responses.length >= D.limits.autoResponses;
+  }
+  $('ar_add').onclick = () => { work.responses.push({ trigger: '', response: '', exact: false }); renderResponses(); };
+
+  // ── 환영 미리보기 ──
+  function fill(t) {
+    const me = window.__novixMe?.user?.name || '새멤버';
+    return (t || '').replaceAll('{user}', '@' + me).replaceAll('{username}', me).replaceAll('{server}', D?.guild.name || '서버').replaceAll('{count}', String(D?.guild.memberCount || 0));
+  }
+  function renderWelcomePreview() {
+    if (!D) return;
+    const box = $('wPreview'); box.replaceChildren();
+    const ava = el('img', 'dc-ava'); ava.src = '/icon.svg'; ava.alt = '';
+    const body = el('div', 'dc-body'); const name = el('div', 'dc-name', 'NOVIX'); name.append(el('span', 'dc-tag', '앱')); body.append(name);
+    const text = fill($('w_welcomeMessage').value);
+    if ($('we_mention').checked && $('we_enabled').checked) body.append(el('div', 'dc-content', fill('{user}')));
+    if (!$('we_enabled').checked) {
+      body.append(el('div', 'dc-content', ($('we_mention').checked ? fill('{user}') + ' ' : '') + text));
+    } else {
+      const em = el('div', 'em'); em.style.borderLeftColor = $('we_color').value;
+      const main = el('div', 'em-main');
+      if ($('we_title').value.trim()) main.append(el('div', 'em-title', fill($('we_title').value)));
+      main.append(el('div', 'em-desc', text)); em.append(main);
+      if ($('we_showAvatar').checked) { const th = el('img', 'em-thumb'); th.alt = ''; th.src = window.__novixMe?.avatarUrl || '/icon.svg'; em.append(th); }
+      const img = $('we_image').value.trim();
+      if (/^https?:\/\/\S+$/i.test(img)) { const i = el('img', 'em-image'); i.alt = ''; i.src = img; i.referrerPolicy = 'no-referrer'; em.append(i); }
+      if ($('we_footer').value.trim()) em.append(el('div', 'em-foot', fill($('we_footer').value)));
+      body.append(em);
+    }
+    box.append(ava, body);
+  }
+  $('tab-welcome').addEventListener('input', renderWelcomePreview);
+  $('tab-welcome').addEventListener('change', renderWelcomePreview);
+
+  // ── 저장 ──
+  const v = (id) => $(id).value;
+  const c = (id) => $(id).checked;
+  const collect = {
+    welcome: () => ({
+      logChannel: v('w_logChannel'), welcomeChannel: v('w_welcomeChannel'), autoRole: v('w_autoRole'),
+      welcomeMessage: v('w_welcomeMessage'), leaveMessage: v('w_leaveMessage'),
+      welcomeEmbed: { enabled: c('we_enabled'), title: v('we_title'), color: v('we_color'), image: v('we_image'), showAvatar: c('we_showAvatar'), footer: v('we_footer'), mention: c('we_mention') },
+    }),
+    automod: () => ({ enabled: c('am_enabled'), blockInvites: c('am_blockInvites'), blockLinks: c('am_blockLinks'), antiSpam: c('am_antiSpam'), minAccountAgeDays: Number(v('am_minAccountAgeDays') || 0), badWords: work.words }),
+    warn: () => ({ timeout: Number(v('wt_timeout') || 0), kick: Number(v('wt_kick') || 0), ban: Number(v('wt_ban') || 0) }),
+    levels: () => ({ enabled: c('lv_enabled'), channel: v('lv_channel'), message: v('lv_message'), rewards: work.rewards.filter((r) => r.roleId) }),
+    verify: () => ({ verifyRole: v('vf_verifyRole'), mode: v('vf_mode'), blockVpn: c('vf_blockVpn'), blockAlts: c('vf_blockAlts'), minAccountAgeDays: Number(v('vf_minAccountAgeDays') || 0) }),
+    autoResponses: () => ({ items: work.responses }),
+  };
+  document.querySelectorAll('[data-save]').forEach((btn) => {
+    btn.onclick = async () => {
+      const section = btn.dataset.save;
+      btn.disabled = true;
+      try {
+        await api(`/api/guilds/${gid}/settings/${section}`, { method: 'POST', body: JSON.stringify(collect[section]()) });
+        await load();
+        msg(section, '✅ 저장했어요!', true);
+      } catch (err) { msg(section, '❌ ' + err.message, false); }
+      btn.disabled = false;
+    };
+  });
+
+  $('welcomeTest').onclick = async () => {
+    try { await api(`/api/guilds/${gid}/welcome-test`, { method: 'POST', body: '{}' }); msg('welcome', '✅ 환영 채널에 테스트를 보냈어요. (저장된 설정 기준)', true); }
+    catch (err) { msg('welcome', '❌ ' + err.message, false); }
+  };
+
+  $('vp_send').onclick = async () => {
+    const btn = $('vp_send'); btn.disabled = true;
+    try {
+      await api(`/api/guilds/${gid}/verify-panel`, {
+        method: 'POST',
+        body: JSON.stringify({ channelId: v('vp_channel'), title: v('vp_title'), description: v('vp_description'), color: v('vp_color'), image: v('vp_image'), buttonLabel: v('vp_buttonLabel') }),
+      });
+      msg($('vp_msg'), '✅ 인증 메시지를 보냈어요!', true);
+    } catch (err) { msg($('vp_msg'), '❌ ' + err.message, false); }
+    btn.disabled = false;
+  };
+
+  async function load() {
+    D = await api(`/api/guilds/${gid}/settings`);
+    render();
+  }
+  window.addEventListener('novix:guild', (e) => {
+    gid = e.detail;
+    document.querySelectorAll('.toast').forEach((t) => { t.textContent = ''; });
+    load().catch((err) => alert(err.message));
+  });
+})();
+</script>
+</body>
+</html>
