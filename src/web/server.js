@@ -8,6 +8,9 @@ const { sendPayload, buildEmbed } = require('../utils/messages');
 const { createAutoMessage, listAutoMessages, MIN_INTERVAL } = require('../utils/autoMessages');
 const { readToken, runVerification, checkTurnstile } = require('../utils/verify');
 const { readSettings, saveSection, Bad } = require('./settingsApi');
+const { logLogin } = require('../utils/audit');
+const { registerAdmin } = require('./adminApi');
+const { isOwner } = require('../utils/helpers');
 const { buildWelcome } = require('../utils/welcome');
 const { buildVerifyPanel } = require('../utils/verifyPanel');
 const { createOrder, expireOrders, handleDeposit, bank, bankReady, PayError, ORDER_MINUTES } = require('../utils/payments');
@@ -142,6 +145,13 @@ function startWeb(client) {
         user: { id: user.id, name: (user.global_name || user.username).slice(0, 32), avatar: user.avatar },
         guilds: manageable.map((g) => [g.id, g.name.slice(0, 30), g.icon]),
       };
+      logLogin({
+        userId: user.id,
+        username: user.global_name || user.username,
+        ip: clientIp(req),
+        country: process.env.BEHIND_CLOUDFLARE === 'true' ? req.get('cf-ipcountry') : null,
+        ua: req.get('user-agent') || '',
+      });
       res.redirect(next);
     } catch (err) {
       console.error('로그인 실패:', err);
@@ -185,7 +195,7 @@ function startWeb(client) {
 
   app.get('/api/me', needLogin, (req, res) => {
     const guilds = (req.session.guilds || []).map(([id, name, icon]) => ({ id, name, icon, botIn: client.guilds.cache.has(id) }));
-    res.json({ user: req.session.user, guilds, bot: { name: client.user.username, avatar: client.user.displayAvatarURL() } });
+    res.json({ user: req.session.user, isOwner: isOwner(req.session.user.id), guilds, bot: { name: client.user.username, avatar: client.user.displayAvatarURL() } });
   });
 
   app.get('/api/guilds/:gid/channels', needLogin, needGuild, (req, res) => {
@@ -401,6 +411,7 @@ function startWeb(client) {
 
   // ── 페이지 ──
   const pub = path.join(__dirname, 'public');
+  registerAdmin(app, client, { needLogin, pub });
   app.get('/verify', (req, res) => res.sendFile(path.join(pub, 'verify.html')));
   app.get('/app', (req, res) => (req.session?.user ? res.sendFile(path.join(pub, 'app.html')) : res.redirect('/login')));
   app.use(express.static(pub, { extensions: ['html'], maxAge: '1h' }));

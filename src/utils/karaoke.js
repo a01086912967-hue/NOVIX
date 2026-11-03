@@ -7,6 +7,7 @@ const {
 } = require('discord.js');
 const db = require('../db');
 const { embed, sendLog } = require('./helpers');
+const voiceScore = require('./voiceScore');
 
 const WATCH_TOGETHER_APP = '880218394199220334'; // 디스코드 공식 "Watch Together" 앱
 const MAX_QUEUE = 30;
@@ -53,17 +54,17 @@ async function buildPanel(guild) {
     const avg = votes.length ? (votes.reduce((a, b) => a + b, 0) / votes.length).toFixed(1) : null;
     e.addFields({
       name: '🔴 지금 부르는 중',
-      value: `<@${c.userId}> — **${c.title}**\n<t:${Math.floor(c.startedAt / 1000)}:R> 시작${plan === 'premium_plus' ? ` · 관객 점수 ${avg ? `⭐ ${avg} (${votes.length}명)` : '아직 없음'}` : ''}`,
+      value: `<@${c.userId}> — ${c.mrUrl ? '🎶 ' : ''}**${c.title}**${c.mrUrl ? ' (NOVIX가 MR을 틀어요)' : ''}\n<t:${Math.floor(c.startedAt / 1000)}:R> 시작${plan === 'premium_plus' ? ` · 관객 점수 ${avg ? `⭐ ${avg} (${votes.length}명)` : '아직 없음'}` : ''}`,
     });
-    e.setThumbnail(`https://i.ytimg.com/vi/${c.videoId}/hqdefault.jpg`);
+    if (c.videoId) e.setThumbnail(`https://i.ytimg.com/vi/${c.videoId}/hqdefault.jpg`);
   } else {
     e.addFields({ name: '🔴 지금 부르는 중', value: '아무도 없어요. **🎤 곡 신청**을 눌러 첫 곡을 불러보세요!' });
   }
   e.addFields({
     name: `📋 다음 차례 (${r.queue.length}곡)`,
-    value: r.queue.length ? r.queue.slice(0, 8).map((q, i) => `**${i + 1}.** <@${q.userId}> — ${q.title}`).join('\n') + (r.queue.length > 8 ? `\n…외 ${r.queue.length - 8}곡` : '') : '비어 있어요.',
+    value: r.queue.length ? r.queue.slice(0, 8).map((q, i) => `**${i + 1}.** <@${q.userId}> — ${q.mrUrl ? '🎶 ' : ''}${q.title}`).join('\n') + (r.queue.length > 8 ? `\n…외 ${r.queue.length - 8}곡` : '') : '비어 있어요.',
   });
-  e.setFooter({ text: '가사는 노래방 영상 화면에 나와요 · 음성 채널에 들어가서 "같이 보기"를 눌러주세요' });
+  e.setFooter({ text: '가사는 노래방 영상 화면에 나와요 · 노래 중엔 NOVIX가 음성 채널에서 부르는 사람 목소리만 듣고 점수를 매겨요 (녹음·저장 안 함)' });
 
   const rows = [
     new ActionRowBuilder().addComponents(
@@ -77,8 +78,8 @@ async function buildPanel(guild) {
   if (r.current) {
     const links = new ActionRowBuilder();
     if (r.current.invite) links.addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setURL(r.current.invite).setLabel('같이 보기 (음성 채널)').setEmoji('📺'));
-    links.addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setURL(`https://www.youtube.com/watch?v=${r.current.videoId}`).setLabel('유튜브에서 열기').setEmoji('▶️'));
-    rows.push(links);
+    if (r.current.videoId) links.addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setURL(`https://www.youtube.com/watch?v=${r.current.videoId}`).setLabel('유튜브에서 열기').setEmoji('▶️'));
+    if (links.components.length) rows.push(links);
     if (plan === 'premium_plus') {
       rows.push(new ActionRowBuilder().addComponents(
         [1, 2, 3, 4, 5].map((n) => new ButtonBuilder().setCustomId(`kr:vote:${n}`).setLabel('⭐'.repeat(n)).setStyle(ButtonStyle.Secondary))
@@ -139,19 +140,27 @@ async function finishCurrent(guild, s) {
   r.current = null;
   const votes = [...c.votes.values()];
   const avg = votes.length ? votes.reduce((a, b) => a + b, 0) / votes.length : null;
-  // 노래방 기계처럼 재미로 보여주는 점수 (실제 노래 실력을 재는 게 아니에요)
-  const machine = 70 + Math.floor(Math.random() * 31);
+  voiceScore.stopMr(guild.id);
+  const score = await voiceScore.stop(guild.id); // 봇이 듣고 계산한 점수 (못 들었으면 null)
   const minutes = Math.max(1, Math.round((Date.now() - c.startedAt) / 60000));
-  await db.query('INSERT INTO karaoke_scores (guild_id, user_id, song, avg_score, votes, machine_score) VALUES ($1,$2,$3,$4,$5,$6)', [guild.id, c.userId, c.title, avg, votes.length, machine]);
+  await db.query('INSERT INTO karaoke_scores (guild_id, user_id, song, avg_score, votes, machine_score) VALUES ($1,$2,$3,$4,$5,$6)',
+    [guild.id, c.userId, c.title, avg, votes.length, score?.ok ? score.total : null]);
 
   const ch = s.karaoke.panelChannel && guild.channels.cache.get(s.karaoke.panelChannel);
-  if (ch?.isTextBased()) {
-    const comment = machine >= 98 ? '🎉 완벽해요!' : machine >= 90 ? '👏 가수 데뷔해도 되겠어요' : machine >= 80 ? '😆 잘 불렀어요!' : '🙂 다음엔 더 잘할 수 있어요';
-    await ch.send({
-      embeds: [embed('🎤 노래 끝!', `<@${c.userId}> — **${c.title}** (${minutes}분)\n\n🎰 **노래방 기계 점수: ${machine}점** ${comment}${avg ? `\n⭐ **관객 점수: ${avg.toFixed(1)} / 5** (${votes.length}명)` : ''}`).setFooter({ text: '기계 점수는 재미용 랜덤이에요 · 관객 점수는 진짜 투표예요' })],
-      allowedMentions: { users: [] },
-    }).catch(() => {});
+  if (!ch?.isTextBased()) return;
+  let body;
+  if (score?.ok) {
+    const comment = score.total >= 97 ? '🎉 완벽해요!' : score.total >= 90 ? '👏 가수 데뷔해도 되겠어요' : score.total >= 80 ? '😆 잘 불렀어요!' : '🙂 다음엔 더 잘할 수 있어요';
+    body = `🎙️ **NOVIX 점수: ${score.total}점** ${comment}\n` +
+      `└ 부른 시간 ${score.parts.sing} · 음량 안정 ${score.parts.volume} · 음정 안정 ${score.parts.pitch} (${score.sangSec}초 동안 들었어요)`;
+  } else {
+    body = `🎙️ NOVIX 점수: ${score ? score.reason : '이번엔 목소리를 못 들어서 점수가 없어요.'}`;
   }
+  if (avg) body += `\n⭐ **관객 점수: ${avg.toFixed(1)} / 5** (${votes.length}명)`;
+  await ch.send({
+    embeds: [embed('🎤 노래 끝!', `<@${c.userId}> — **${c.title}** (${minutes}분)\n\n${body}`).setFooter({ text: 'NOVIX 점수는 목소리를 듣고 계산해요 (원곡 음정 비교는 아니에요 · 녹음 안 함)' })],
+    allowedMentions: { users: [] },
+  }).catch(() => {});
 }
 
 async function startNext(client, guild) {
@@ -161,19 +170,34 @@ async function startNext(client, guild) {
   const next = r.queue.shift();
   if (!next) {
     await unmuteAll(guild);
+    voiceScore.leave(guild.id);
     return null;
   }
   let invite = null;
   const vc = s.karaoke.voiceChannel && guild.channels.cache.get(s.karaoke.voiceChannel);
-  if (vc) {
+  if (vc && !next.mrUrl) {
     invite = await vc.createInvite({ targetType: InviteTargetType.EmbeddedApplication, targetApplication: WATCH_TOGETHER_APP, maxAge: 3 * 3600, reason: 'NOVIX 노래방' })
       .then((i) => i.url).catch(() => null);
   }
   r.current = { ...next, startedAt: Date.now(), votes: new Map(), invite };
   await applyStage(guild, s, next.userId);
+  r.current.listening = vc ? await voiceScore.start(guild, vc.id, next.userId).catch(() => false) : false;
+  if (next.mrUrl && vc) {
+    const myTurn = r.current.startedAt;
+    // MR이 끝나면 자동으로 다음 곡
+    r.current.playing = await voiceScore.playMr(guild, vc.id, next.mrUrl, async () => {
+      if (room(guild.id).current?.startedAt !== myTurn) return;
+      await startNext(client, guild).catch(console.error);
+      await refreshPanel(client, guild.id).catch(() => {});
+    }).catch(() => false);
+  }
 
-  const ch = s.karaoke.panelChannel && guild.channels.cache.get(s.karaoke.panelChannel);
-  if (ch?.isTextBased()) await ch.send({ content: `🎤 <@${next.userId}>님 차례예요! **${next.title}**`, allowedMentions: { users: [next.userId] } }).catch(() => {});
+  // 차례 알림은 그 사람에게만 (DM)
+  const user = await client.users.fetch(next.userId).catch(() => null);
+  await user?.send({
+    embeds: [embed('🎤 내 차례예요!', `**${guild.name}** 노래방 — **${next.title}**\n${next.mrUrl ? (r.current.playing ? '🎶 NOVIX가 음성 채널에서 MR을 틀고 있어요. 바로 불러주세요!' : '⚠️ MR을 틀지 못했어요. 관리자에게 알려주세요.') : '음성 채널에서 "같이 보기"를 열고 불러주세요.'}${r.current.listening ? '\n🎙️ NOVIX가 목소리를 듣고 점수를 매겨요 (녹음·저장 안 함).' : ''}`)],
+    components: invite ? [new ActionRowBuilder().addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setURL(invite).setLabel('같이 보기 열기').setEmoji('📺'))] : [],
+  }).catch(() => {});
   return r.current;
 }
 
@@ -223,7 +247,7 @@ async function handle(interaction) {
     r.searches.delete(interaction.user.id);
     if (r.queue.filter((q) => q.userId === interaction.user.id).length >= MAX_PER_USER) return interaction.update({ content: `한 사람당 ${MAX_PER_USER}곡까지예요.`, components: [] });
     r.queue.push({ userId: interaction.user.id, title: v.title, videoId: v.id });
-    await interaction.update({ content: `✅ 신청 완료! **${v.title}** — 대기 ${r.queue.length}번째${r.current ? '' : '\n아무도 안 부르고 있으니 패널의 **⏭️ 시작**을 누르면 바로 시작해요.'}`, components: [] });
+    await interaction.update({ content: `✅ 신청 완료! **${v.title}** — 대기 ${r.queue.length}번째\n내 차례가 되면 DM으로 알려드려요. 부를 때는 NOVIX가 목소리를 듣고 점수를 매겨요 (녹음·저장 안 함).${r.current ? '' : '\n아무도 안 부르고 있으니 패널의 **⏭️ 시작**을 누르면 바로 시작해요.'}`, components: [] });
     return refreshPanel(interaction.client, guild.id);
   }
 
@@ -243,19 +267,22 @@ async function handle(interaction) {
     const mine = r.current?.userId === interaction.user.id;
     if (r.current && !mine && !isStaff(interaction.member))
       return interaction.reply(ephemeral('지금 부르는 사람이나 관리자만 다음 곡으로 넘길 수 있어요.'));
-    await interaction.deferUpdate();
-    await startNext(interaction.client, guild);
-    return refreshPanel(interaction.client, guild.id);
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const now = await startNext(interaction.client, guild);
+    await refreshPanel(interaction.client, guild.id);
+    return interaction.editReply(now ? `⏭️ 다음 곡 시작: <@${now.userId}> — **${now.title}**${now.listening ? '' : '\n(음성 채널에 들어가지 못해서 이번 곡은 NOVIX 점수가 없어요)'}` : '대기열이 비어서 노래방을 쉬어요. 🎤 곡 신청으로 다시 시작하세요!');
   }
 
   if (action === 'stop') {
     if (!isStaff(interaction.member)) return interaction.reply(ephemeral('관리자만 노래방을 종료할 수 있어요.'));
-    await interaction.deferUpdate();
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     await finishCurrent(guild, s);
     r.queue = [];
     await unmuteAll(guild);
+    voiceScore.leave(guild.id);
     await sendLog(guild, embed('⏹️ 노래방 종료', `${interaction.user}님이 노래방을 끝냈어요.`));
-    return refreshPanel(interaction.client, guild.id);
+    await refreshPanel(interaction.client, guild.id);
+    return interaction.editReply('⏹️ 노래방을 종료했어요. 대기열을 비우고 음소거를 풀었어요.');
   }
 
   if (action === 'vote') {
@@ -288,11 +315,30 @@ async function onVoiceUpdate(oldState, newState) {
   }
 }
 
+// /노래방 mr — 내 MR 파일로 신청
+async function addMr(interaction, file, title) {
+  const guild = interaction.guild;
+  const r = room(guild.id);
+  const s = await db.getSettings(guild.id);
+  if (!s.karaoke.voiceChannel) return interaction.reply(ephemeral('먼저 관리자가 `/노래방 지정`으로 노래방을 만들어야 해요.'));
+  if (!voiceScore.available()) return interaction.reply(ephemeral('❌ 지금은 NOVIX가 음성 채널에서 소리를 틀 수 없어요. 봇 관리자에게 알려주세요.'));
+  if (!file.contentType?.startsWith('audio/') && !/\.(mp3|m4a|wav|ogg|flac|aac)$/i.test(file.name)) return interaction.reply(ephemeral('❌ 오디오 파일(mp3, m4a, wav, ogg 등)만 올릴 수 있어요.'));
+  if (file.size > 25 * 1024 * 1024) return interaction.reply(ephemeral('❌ 25MB 이하 파일만 돼요.'));
+  if (r.queue.length >= MAX_QUEUE) return interaction.reply(ephemeral('대기열이 꽉 찼어요. 조금 뒤에 신청해주세요.'));
+  if (r.queue.filter((q) => q.userId === interaction.user.id).length >= MAX_PER_USER) return interaction.reply(ephemeral(`한 사람당 ${MAX_PER_USER}곡까지 신청할 수 있어요.`));
+  const name = (title || file.name.replace(/\.[^.]+$/, '')).slice(0, 100);
+  r.queue.push({ userId: interaction.user.id, title: name, mrUrl: file.url });
+  await interaction.reply(ephemeral(`✅ MR 신청 완료! 🎶 **${name}** — 대기 ${r.queue.length}번째\n내 차례가 되면 NOVIX가 음성 채널에서 틀어주고, DM으로 알려드려요. MR이 끝나면 자동으로 다음 곡으로 넘어가요.\n※ 정식으로 구한 MR 파일만 올려주세요.`));
+  return refreshPanel(interaction.client, guild.id);
+}
+
 async function resetRoom(guild) {
   const r = room(guild.id);
   r.queue = [];
   r.current = null;
+  await voiceScore.stop(guild.id);
+  voiceScore.leave(guild.id);
   await unmuteAll(guild);
 }
 
-module.exports = { handle, postPanel, refreshPanel, onVoiceUpdate, resetRoom, planOf, buildPanel };
+module.exports = { handle, postPanel, refreshPanel, onVoiceUpdate, resetRoom, planOf, buildPanel, addMr };

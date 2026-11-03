@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>NOVIX 관리자</title>
+<link rel="icon" href="/icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #0E1024; --panel: #161936; --panel2: #1E2142; --line: #262A52; --line2: #33366A; --text: #F2F2F7; --muted: #A9ABC6; --accent: #7B6BFF; --accent-text: #B3AAFF; --btn: #5B4BE8; --ok: #7EE2A8; --err: #FF9C9C; --warn: #FFD27A; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Noto Sans KR', system-ui, sans-serif; word-break: keep-all; overflow-wrap: anywhere; }
+  a { color: var(--accent-text); }
+  header { border-bottom: 1px solid var(--line); }
+  .bar { max-width: 1280px; margin: 0 auto; padding: 14px 20px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; letter-spacing: .04em; }
+  .badge { font-family: 'Noto Sans KR', sans-serif; font-size: 12px; letter-spacing: 0; padding: 3px 8px; border-radius: 999px; background: #3A1820; color: #FFB3C0; }
+  .links { display: flex; gap: 16px; font-size: 14px; }
+  main { max-width: 1280px; margin: 0 auto; padding: 24px 20px 80px; }
+  .layout { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .side { flex: 0 0 200px; display: flex; flex-direction: column; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 10px; }
+  .side a { display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 10px; color: #C4C6DD; text-decoration: none; font-size: 15px; white-space: nowrap; }
+  .side a[aria-current="page"] { background: #26295A; color: #fff; font-weight: 700; }
+  .content { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+  .tab { display: flex; flex-direction: column; gap: 16px; }
+  h1 { margin: 0; font-size: 26px; font-weight: 900; }
+  .sub { margin: -6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+  .card h2 { margin: 0 0 14px; font-size: 16px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  .tile small { display: block; color: var(--muted); font-size: 13px; }
+  .tile b { display: block; margin-top: 6px; font-family: 'Space Grotesk', sans-serif; font-size: 28px; }
+  .tile span { font-size: 12px; color: var(--muted); }
+  .chart { display: flex; align-items: flex-end; gap: 6px; height: 140px; padding-top: 8px; }
+  .chart .col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+  .chart .bar { width: 100%; max-width: 36px; background: var(--accent); border-radius: 6px 6px 2px 2px; min-height: 2px; }
+  .chart small { font-size: 11px; color: var(--muted); }
+  .rank { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .rank li { display: grid; grid-template-columns: 120px 1fr 48px; align-items: center; gap: 10px; font-size: 14px; }
+  .rank .track { height: 10px; border-radius: 999px; background: var(--panel2); overflow: hidden; }
+  .rank .fill { height: 100%; background: var(--accent); }
+  .rank em { font-style: normal; text-align: right; color: var(--muted); font-family: 'Space Grotesk', sans-serif; }
+  .tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  input[type=text], input[type=search], input[type=number], select { min-height: 44px; border-radius: 10px; background: var(--panel2); border: 1px solid var(--line2); color: var(--text); font: inherit; font-size: 15px; padding: 0 12px; }
+  input[type=search] { flex: 1 1 240px; min-width: 0; }
+  button { font: inherit; cursor: pointer; }
+  .btn { min-height: 40px; padding: 0 14px; border-radius: 10px; border: none; background: var(--btn); color: #fff; font-weight: 700; font-size: 14px; }
+  .btn.ghost { background: transparent; border: 1px solid var(--line2); color: var(--text); font-weight: 500; }
+  .btn.danger { background: transparent; border: 1px solid #6B2A38; color: var(--err); font-weight: 500; }
+  .tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 640px; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { color: var(--muted); font-weight: 500; font-size: 13px; background: #12142B; position: sticky; top: 0; }
+  tr:last-child td { border-bottom: none; }
+  td code, .mono { font-family: 'Space Grotesk', monospace; font-size: 13px; color: var(--accent-text); }
+  .gname { display: flex; align-items: center; gap: 10px; }
+  .gname img { width: 32px; height: 32px; border-radius: 10px; background: var(--panel2); flex: none; }
+  .pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .p-ok { background: #123326; color: var(--ok); } .p-bad { background: #3A1820; color: var(--err); } .p-wait { background: #3A2F0E; color: var(--warn); } .p-plan { background: #26295A; color: var(--accent-text); }
+  .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .toast { margin: 0; min-height: 20px; font-size: 14px; } .toast.ok { color: var(--ok); } .toast.err { color: var(--err); }
+  .note { margin: 0; padding: 12px 14px; border-radius: 12px; background: #26295A; font-size: 13px; line-height: 1.7; color: #D3D5E8; }
+  .empty { color: var(--muted); padding: 20px; text-align: center; }
+  dialog { border: 1px solid var(--line2); border-radius: 18px; background: var(--panel); color: var(--text); padding: 22px; width: min(420px, calc(100% - 32px)); }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  dialog form { display: flex; flex-direction: column; gap: 12px; }
+  dialog label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+  @media (max-width: 1024px) {
+    .side { flex: 1 1 100%; flex-direction: row; overflow-x: auto; padding: 6px; scrollbar-width: none; }
+    .side::-webkit-scrollbar { display: none; }
+    .side a { flex: none; }
+    .content { flex-basis: 100%; }
+  }
+  @media (max-width: 640px) {
+    main { padding: 16px 12px 60px; }
+    .rank li { grid-template-columns: 90px 1fr 40px; }
+    .tile b { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <a class="brand" href="/admin">
+      <svg width="30" height="30" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#1B1E3D"/><polygon points="142,128 222,128 370,384 290,384" fill="#7B6BFF"/><rect x="124" y="128" width="58" height="256" rx="12" fill="#F2F2F7"/><rect x="330" y="128" width="58" height="256" rx="12" fill="#F2F2F7"/></svg>
+      NOVIX <span class="badge">관리자</span>
+    </a>
+    <nav class="links"><a href="/app">대시보드</a><a href="/logout">로그아웃</a></nav>
+  </div>
+</header>
+
+<main>
+  <p class="toast err" id="fatal" hidden></p>
+  <div class="layout" id="wrap">
+    <nav class="side" aria-label="관리자 메뉴">
+      <a href="#overview" data-tab="overview">개요</a>
+      <a href="#guilds" data-tab="guilds">서버 · 프리미엄</a>
+      <a href="#logins" data-tab="logins">로그인 기록</a>
+      <a href="#verify" data-tab="verify">인증 기록</a>
+      <a href="#orders" data-tab="orders">주문</a>
+    </nav>
+    <div class="content">
+      <!-- 개요 -->
+      <section class="tab" id="tab-overview" hidden>
+        <h1>개요</h1>
+        <div class="tiles" id="tiles"></div>
+        <div class="card"><h2>최근 14일 명령어 사용</h2><div class="chart" id="daily"></div></div>
+        <div class="card"><h2>최근 7일 많이 쓴 명령어</h2><ol class="rank" id="topCmds"></ol></div>
+        <div class="card"><h2>봇 상태</h2><p class="mono" id="botInfo" style="margin: 0; line-height: 1.9"></p></div>
+      </section>
+
+      <!-- 서버 -->
+      <section class="tab" id="tab-guilds" hidden>
+        <h1>서버 · 프리미엄</h1>
+        <p class="sub" id="gCount"></p>
+        <div class="tools">
+          <input type="search" id="gq" placeholder="서버 이름 또는 ID 검색" aria-label="서버 검색">
+          <button class="btn ghost" type="button" id="gSearch">검색</button>
+          <button class="btn" type="button" id="gGrantAny">ID로 프리미엄 지급</button>
+        </div>
+        <p class="toast" id="gMsg" role="status" aria-live="polite"></p>
+        <div class="tbl"><table><thead><tr><th>서버</th><th>멤버</th><th>플랜</th><th>들어온 날</th><th>관리</th></tr></thead><tbody id="gRows"></tbody></table></div>
+      </section>
+
+      <!-- 로그인 -->
+      <section class="tab" id="tab-logins" hidden>
+        <h1>로그인 기록</h1>
+        <p class="note" id="lNote"></p>
+        <div class="tools">
+          <input type="search" id="lq" placeholder="유저 ID, 이름, IP 앞부분 검색" aria-label="로그인 기록 검색">
+          <button class="btn ghost" type="button" id="lSearch">검색</button>
+        </div>
+        <div class="tbl"><table><thead><tr><th>시간</th><th>유저</th><th>IP</th><th>나라</th><th>기기</th></tr></thead><tbody id="lRows"></tbody></table></div>
+      </section>
+
+      <!-- 인증 -->
+      <section class="tab" id="tab-verify" hidden>
+        <h1>인증 기록</h1>
+        <p class="note">웹 인증 결과와 막힌 사유예요. IP는 저장하지 않아요 (90일 보관).</p>
+        <div class="tbl"><table><thead><tr><th>시간</th><th>서버</th><th>유저 ID</th><th>결과</th><th>사유</th></tr></thead><tbody id="vRows"></tbody></table></div>
+      </section>
+
+      <!-- 주문 -->
+      <section class="tab" id="tab-orders" hidden>
+        <h1>주문</h1>
+        <p class="note">사이트 계좌이체 주문 기록이에요. 지금은 공식 서버에서 수동 결제를 쓰고 있어서 비어 있을 수 있어요.</p>
+        <div class="tbl"><table><thead><tr><th>#</th><th>시간</th><th>서버</th><th>플랜</th><th>금액</th><th>입금자명</th><th>상태</th></tr></thead><tbody id="oRows"></tbody></table></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<dialog id="grant">
+  <form method="dialog" id="grantForm">
+    <h2 style="margin: 0; font-size: 18px">💎 프리미엄 지급</h2>
+    <label>서버 ID<input type="text" id="gdId" inputmode="numeric" required></label>
+    <label>플랜<select id="gdPlan"><option value="premium">프리미엄</option><option value="premium_plus">프리미엄+</option></select></label>
+    <label>일수<input type="number" id="gdDays" value="30" min="1" max="3650" required></label>
+    <p class="note" style="font-size: 12px">이미 프리미엄이면 남은 기간 뒤에 이어 붙어요.</p>
+    <div class="acts" style="justify-content: flex-end">
+      <button class="btn ghost" value="cancel" type="submit" formnovalidate>취소</button>
+      <button class="btn" value="ok" type="submit">지급</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const fmt = (d) => new Date(d).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const PLAN = { premium: '프리미엄', premium_plus: '프리미엄+' };
+  const STATUS = { pending: ['입금 대기', 'p-wait'], paid: ['완료', 'p-ok'], expired: ['기한 지남', 'p-bad'], cancelled: ['취소', 'p-bad'] };
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+    if (res.status === 401) { location.href = '/login?next=/admin'; throw new Error('로그인 필요'); }
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.error || '오류');
+    return d;
+  }
+  const toast = (t, ok) => { $('gMsg').textContent = t; $('gMsg').className = 'toast ' + (ok ? 'ok' : 'err'); };
+  const td = (...nodes) => { const c = el('td'); nodes.forEach((n) => c.append(typeof n === 'string' ? document.createTextNode(n) : n)); return c; };
+  const emptyRow = (tbody, cols, text) => { const tr = el('tr'); const c = el('td', 'empty', text); c.colSpan = cols; tr.append(c); tbody.replaceChildren(tr); };
+
+  // ── 탭 ──
+  const TABS = ['overview', 'guilds', 'logins', 'verify', 'orders'];
+  const loaded = {};
+  function show() {
+    const name = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'overview';
+    TABS.forEach((t) => { $('tab-' + t).hidden = t !== name; });
+    document.querySelectorAll('.side a').forEach((a) => (a.dataset.tab === name ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
+    if (!loaded[name]) { loaded[name] = true; LOAD[name]().catch((e) => { $('fatal').hidden = false; $('fatal').textContent = '❌ ' + e.message; }); }
+  }
+  window.addEventListener('hashchange', show);
+
+  // ── 개요 ──
+  async function loadOverview() {
+    const d = await api('/api/admin/overview');
+    const tiles = [
+      ['서버', d.guilds], ['보호 중인 멤버', d.members.toLocaleString('ko-KR')], ['프리미엄 서버', d.premium],
+      ['오늘 명령어', d.cmdsToday], ['24시간 로그인', d.logins24, `30일 동안 ${d.users30}명`],
+      ['24시간 인증', d.verify24.ok, `막힘 ${d.verify24.blocked}`], ['입금 대기 주문', d.pendingOrders],
+    ];
+    $('tiles').replaceChildren(...tiles.map(([k, v, sub]) => { const t = el('div', 'tile'); t.append(el('small', null, k), el('b', null, String(v))); if (sub) t.append(el('span', null, sub)); return t; }));
+    const max = Math.max(1, ...d.daily.map((x) => x.n));
+    $('daily').replaceChildren(...(d.daily.length ? d.daily.map((x) => {
+      const c = el('div', 'col'); const b = el('div', 'bar'); b.style.height = `${(x.n / max) * 100}%`; b.title = `${x.d}: ${x.n}번`;
+      c.append(el('small', null, String(x.n)), b, el('small', null, x.d)); return c;
+    }) : [el('p', 'empty', '아직 기록이 없어요.')]));
+    const tmax = Math.max(1, ...d.topCmds.map((x) => x.n));
+    $('topCmds').replaceChildren(...(d.topCmds.length ? d.topCmds.map((x) => {
+      const li = el('li'); const tr = el('div', 'track'); const f = el('div', 'fill'); f.style.width = `${(x.n / tmax) * 100}%`; tr.append(f);
+      li.append(el('span', null, '/' + x.name), tr, el('em', null, String(x.n))); return li;
+    }) : [el('li', 'empty', '아직 기록이 없어요.')]));
+    const up = d.bot.uptime;
+    $('botInfo').textContent = `${d.bot.name} · 핑 ${d.bot.ping}ms · 가동 ${Math.floor(up / 86400)}일 ${Math.floor((up % 86400) / 3600)}시간 ${Math.floor((up % 3600) / 60)}분 · 메모리 ${d.bot.memoryMb}MB · Node ${d.bot.node}`;
+  }
+
+  // ── 서버 ──
+  async function loadGuilds() {
+    const d = await api('/api/admin/guilds?q=' + encodeURIComponent($('gq').value.trim()));
+    $('gCount').textContent = `NOVIX가 들어간 서버 ${d.total}개 (멤버 많은 순, 최대 200개 표시)`;
+    if (!d.guilds.length) return emptyRow($('gRows'), 5, '검색 결과가 없어요.');
+    $('gRows').replaceChildren(...d.guilds.map((g) => {
+      const tr = el('tr');
+      const name = el('div', 'gname'); const img = el('img'); img.alt = ''; img.src = g.icon || '/icon.svg'; const nm = el('div'); nm.append(el('div', null, g.name), el('code', null, g.id)); name.append(img, nm);
+      const plan = g.premium ? (() => { const s = el('span'); s.append(el('span', 'pill p-plan', PLAN[g.premium.plan] || g.premium.plan), el('div', null, '~' + new Date(g.premium.expiresAt).toLocaleDateString('ko-KR'))); s.lastChild.style.cssText = 'font-size:12px;color:var(--muted);margin-top:4px'; return s; })() : el('span', 'pill', '무료');
+      const acts = el('div', 'acts');
+      const give = el('button', 'btn ghost', '지급'); give.type = 'button'; give.onclick = () => openGrant(g.id);
+      acts.append(give);
+      if (g.premium) { const rv = el('button', 'btn ghost', '회수'); rv.type = 'button'; rv.onclick = () => revoke(g); acts.append(rv); }
+      const lv = el('button', 'btn danger', '나가기'); lv.type = 'button'; lv.setAttribute('aria-label', `${g.name}에서 나가기`); lv.onclick = () => leave(g); acts.append(lv);
+      tr.append(td(name), td(g.members.toLocaleString('ko-KR')), td(plan), td(new Date(g.joinedAt).toLocaleDateString('ko-KR')), td(acts));
+      return tr;
+    }));
+  }
+  function openGrant(id = '') { $('gdId').value = id; $('grant').showModal(); }
+  $('grant').addEventListener('close', async () => {
+    if ($('grant').returnValue !== 'ok') return;
+    try {
+      const r = await api('/api/admin/premium', { method: 'POST', body: JSON.stringify({ guildId: $('gdId').value, plan: $('gdPlan').value, days: Number($('gdDays').value) }) });
+      toast(`✅ 지급했어요 · 만료 ${new Date(r.expiresAt).toLocaleString('ko-KR')}`, true); loadGuilds();
+    } catch (e) { toast('❌ ' + e.message, false); }
+  });
+  async function revoke(g) {
+    if (!confirm(`${g.name}의 프리미엄을 회수할까요?`)) return;
+    try { await api(`/api/admin/premium/${g.id}/revoke`, { method: 'POST', body: '{}' }); toast('✅ 회수했어요', true); loadGuilds(); } catch (e) { toast('❌ ' + e.message, false); }
+  }
+  async function leave(g) {
+    if (!confirm(`정말 "${g.name}" 서버에서 NOVIX를 내보낼까요? 되돌릴 수 없어요.`)) return;
+    try { await api(`/api/admin/guilds/${g.id}/leave`, { method: 'POST', body: '{}' }); toast(`👋 ${g.name}에서 나왔어요`, true); loadGuilds(); } catch (e) { toast('❌ ' + e.message, false); }
+  }
+  $('gSearch').onclick = () => loadGuilds().catch((e) => toast('❌ ' + e.message, false));
+  $('gq').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('gSearch').click(); });
+  $('gGrantAny').onclick = () => openGrant('');
+
+  // ── 로그인 ──
+  async function loadLogins() {
+    const d = await api('/api/admin/logins?q=' + encodeURIComponent($('lq').value.trim()));
+    $('lNote').textContent = d.fullIp
+      ? '⚠️ 전체 IP 저장이 켜져 있어요 (LOG_FULL_IP=true). 30일 뒤 자동 삭제돼요.'
+      : '개인정보 보호를 위해 IP는 앞부분만 저장해요 (예: 218.158.*.*). 30일 뒤 자동 삭제돼요.';
+    if (!d.logs.length) return emptyRow($('lRows'), 5, '기록이 없어요.');
+    $('lRows').replaceChildren(...d.logs.map((l) => {
+      const tr = el('tr'); const u = el('div'); u.append(el('div', null, l.username || '-'), el('code', null, l.user_id));
+      tr.append(td(fmt(l.created_at)), td(u), td(el('code', null, l.ip || '-')), td(l.country || '-'), td(l.device || '-'));
+      return tr;
+    }));
+  }
+  $('lSearch').onclick = () => loadLogins();
+  $('lq').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadLogins(); });
+
+  // ── 인증 ──
+  async function loadVerify() {
+    const d = await api('/api/admin/verifications');
+    if (!d.logs.length) return emptyRow($('vRows'), 5, '기록이 없어요.');
+    $('vRows').replaceChildren(...d.logs.map((v) => {
+      const tr = el('tr');
+      tr.append(td(fmt(v.created_at)), td(v.guildName), td(el('code', null, v.user_id)), td(el('span', 'pill ' + (v.ok ? 'p-ok' : 'p-bad'), v.ok ? '통과' : '막힘')), td(v.reason || '-'));
+      return tr;
+    }));
+  }
+
+  // ── 주문 ──
+  async function loadOrders() {
+    const d = await api('/api/admin/orders');
+    if (!d.orders.length) return emptyRow($('oRows'), 7, '주문이 없어요.');
+    $('oRows').replaceChildren(...d.orders.map((o) => {
+      const tr = el('tr'); const [label, cls] = STATUS[o.status] || [o.status, ''];
+      tr.append(td('#' + o.id), td(fmt(o.created_at)), td(o.guildName), td(o.planName || o.plan), td(Number(o.amount).toLocaleString('ko-KR') + '원'), td(o.depositor), td(el('span', 'pill ' + cls, label)));
+      return tr;
+    }));
+  }
+
+  const LOAD = { overview: loadOverview, guilds: loadGuilds, logins: loadLogins, verify: loadVerify, orders: loadOrders };
+  show();
+})();
+</script>
+</body>
+</html>

@@ -706,6 +706,10 @@
     $('uname').textContent = state.me.user.name;
     $('uava').src = state.me.user.avatar ? `https://cdn.discordapp.com/avatars/${state.me.user.id}/${state.me.user.avatar}.png?size=64` : '/icon.svg';
     window.__novixMe = { user: state.me.user, avatarUrl: $('uava').src };
+    if (state.me.isOwner) {
+      const a = document.createElement('a'); a.href = '/admin'; a.textContent = '관리자'; a.style.fontWeight = '700';
+      document.querySelector('.user').prepend(a);
+    }
     const sel = $('guild');
     if (!state.me.guilds.length) {
       $('tabsWrap').hidden = true; $('noBot').hidden = false;

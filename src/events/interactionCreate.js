@@ -1,5 +1,6 @@
 const { Events, MessageFlags } = require('discord.js');
 const { handleButton } = require('../utils/buttons');
+const { countCommand } = require('../utils/audit');
 
 module.exports = {
   name: Events.InteractionCreate,
@@ -12,7 +13,10 @@ module.exports = {
         return await require('../utils/karaoke').handle(interaction);
       if (!interaction.isChatInputCommand() && !interaction.isMessageContextMenuCommand()) return;
       const command = client.commands.get(interaction.commandName);
-      if (command) await command.execute(interaction, client);
+      if (command) {
+        countCommand(interaction.commandName);
+        await command.execute(interaction, client);
+      }
     } catch (err) {
       console.error(`상호작용 오류 (${interaction.commandName || interaction.customId}):`, err);
       const msg = { content: '⚠️ 실행 중 오류가 났어요.', flags: MessageFlags.Ephemeral };

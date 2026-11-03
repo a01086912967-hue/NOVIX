@@ -197,6 +197,37 @@ async function init() {
     );
     CREATE INDEX IF NOT EXISTS karaoke_scores_guild ON karaoke_scores (guild_id, user_id);
 
+    -- 웹 로그인 기록 (IP는 기본으로 앞부분만, 30일 뒤 자동 삭제)
+    CREATE TABLE IF NOT EXISTS login_logs (
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      username TEXT,
+      ip TEXT,
+      country TEXT,
+      device TEXT,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS login_logs_time ON login_logs (created_at DESC);
+
+    -- 웹 인증 결과 (IP 없음, 90일 뒤 자동 삭제)
+    CREATE TABLE IF NOT EXISTS verify_logs (
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      ok BOOLEAN NOT NULL,
+      reason TEXT,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS verify_logs_time ON verify_logs (created_at DESC);
+
+    -- 명령어 사용 횟수 (날짜별)
+    CREATE TABLE IF NOT EXISTS command_stats (
+      day DATE NOT NULL DEFAULT CURRENT_DATE,
+      name TEXT NOT NULL,
+      count INT NOT NULL DEFAULT 0,
+      PRIMARY KEY (day, name)
+    );
+
     CREATE TABLE IF NOT EXISTS premium (
       guild_id TEXT PRIMARY KEY,
       plan TEXT NOT NULL,

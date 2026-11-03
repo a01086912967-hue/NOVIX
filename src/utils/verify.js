@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const db = require('../db');
 const { embed, sendLog } = require('./helpers');
+const { logVerify } = require('./audit');
 
 const SECRET = () => process.env.SESSION_SECRET || process.env.DISCORD_TOKEN || 'novix';
 const TOKEN_MINUTES = 10;
@@ -72,6 +73,7 @@ async function runVerification(client, { guildId, userId, ip }) {
   if (member.roles.cache.has(s.verifyRole)) return { ok: true, already: true, guildName: guild.name };
 
   const fail = async (reason, logText) => {
+    logVerify(guildId, userId, false, logText || reason);
     await sendLog(guild, embed('⛔ 인증 차단', `**유저:** ${member} (${member.user.tag})\n**사유:** ${logText || reason}`));
     return { ok: false, reason };
   };
@@ -114,6 +116,7 @@ async function runVerification(client, { guildId, userId, ip }) {
      ON CONFLICT (guild_id, user_id) DO UPDATE SET ip_hash = EXCLUDED.ip_hash, verified_at = now()`,
     [guildId, userId, ipHash]
   );
+  logVerify(guildId, userId, true, null);
   await sendLog(guild, embed('✅ 인증 완료', `${member} (${member.user.tag}) · 계정 ${Math.floor(ageDays)}일`));
   return { ok: true, guildName: guild.name };
 }

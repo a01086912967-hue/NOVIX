@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } = require('discord.js');
 const db = require('../db');
 const { embed } = require('../utils/helpers');
-const { postPanel, refreshPanel, resetRoom, planOf } = require('../utils/karaoke');
+const { postPanel, refreshPanel, resetRoom, planOf, addMr } = require('../utils/karaoke');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -15,9 +15,14 @@ module.exports = {
     )
     .addSubcommand((s) => s.setName('패널').setDescription('[관리자] 노래방 패널을 다시 올리기'))
     .addSubcommand((s) =>
+      s.setName('mr').setDescription('내 MR 파일로 곡 신청 (내 차례에 NOVIX가 음성 채널에서 틀어줘요)')
+        .addAttachmentOption((o) => o.setName('파일').setDescription('MR 오디오 파일 (mp3 등, 25MB 이하, 정식으로 구한 파일만)').setRequired(true))
+        .addStringOption((o) => o.setName('제목').setDescription('노래 제목 (비우면 파일 이름)').setMaxLength(100))
+    )
+    .addSubcommand((s) =>
       s.setName('랭킹').setDescription('노래방 점수 랭킹')
         .addStringOption((o) =>
-          o.setName('기준').setDescription('기본: 관객 점수').addChoices({ name: '관객 점수 (투표)', value: 'avg' }, { name: '많이 부른 순', value: 'count' }, { name: '기계 점수 최고', value: 'machine' })
+          o.setName('기준').setDescription('기본: 관객 점수').addChoices({ name: '관객 점수 (투표)', value: 'avg' }, { name: '많이 부른 순', value: 'count' }, { name: 'NOVIX 점수 최고', value: 'machine' })
         )
     )
     .addSubcommand((s) => s.setName('초기화').setDescription('[관리자] 대기열 비우고 음소거 전부 풀기')),
@@ -32,6 +37,8 @@ module.exports = {
     const plan = await planOf(guild.id);
     if (plan === 'free' && sub !== '랭킹')
       return interaction.reply({ content: '💎 노래방은 프리미엄 기능이에요. `/프리미엄 상태`로 확인해보세요.', flags: MessageFlags.Ephemeral });
+
+    if (sub === 'mr') return addMr(interaction, interaction.options.getAttachment('파일'), interaction.options.getString('제목'));
 
     if (sub === '지정') {
       const vc = interaction.options.getChannel('음성채널');
@@ -77,13 +84,13 @@ module.exports = {
     const sql = {
       avg: `SELECT user_id, AVG(avg_score) AS v, COUNT(*) AS n FROM karaoke_scores WHERE guild_id = $1 AND avg_score IS NOT NULL GROUP BY user_id HAVING COUNT(*) >= 1 ORDER BY v DESC, n DESC LIMIT 10`,
       count: `SELECT user_id, COUNT(*) AS v, COUNT(*) AS n FROM karaoke_scores WHERE guild_id = $1 GROUP BY user_id ORDER BY v DESC LIMIT 10`,
-      machine: `SELECT user_id, MAX(machine_score) AS v, COUNT(*) AS n FROM karaoke_scores WHERE guild_id = $1 GROUP BY user_id ORDER BY v DESC LIMIT 10`,
+      machine: `SELECT user_id, MAX(machine_score) AS v, COUNT(*) AS n FROM karaoke_scores WHERE guild_id = $1 AND machine_score IS NOT NULL GROUP BY user_id ORDER BY v DESC LIMIT 10`,
     }[by];
     const { rows } = await db.query(sql, [guild.id]);
     const medals = ['🥇', '🥈', '🥉'];
     const fmt = (r) => (by === 'avg' ? `⭐ ${Number(r.v).toFixed(1)} (${r.n}곡)` : by === 'count' ? `${r.v}곡` : `${r.v}점`);
     const desc = rows.length ? rows.map((r, i) => `${medals[i] || `**${i + 1}.**`} <@${r.user_id}> — ${fmt(r)}`).join('\n') : '아직 기록이 없어요. 노래방에서 한 곡 불러보세요! 🎤';
-    const title = { avg: '관객 점수', count: '많이 부른 순', machine: '기계 점수 최고' }[by];
+    const title = { avg: '관객 점수', count: '많이 부른 순', machine: 'NOVIX 점수 최고' }[by];
     return interaction.reply({ embeds: [embed(`🏆 노래방 랭킹 · ${title}`, desc)], allowedMentions: { parse: [] } });
   },
 };

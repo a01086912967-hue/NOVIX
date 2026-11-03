@@ -3,6 +3,7 @@ const { embed, sendLog } = require('./helpers');
 const { endGiveaway } = require('./giveaway');
 const { runDueAutoMessages } = require('./autoMessages');
 const { expireOrders } = require('./payments');
+const { cleanup } = require('./audit');
 
 // 20초마다 시간이 된 작업 실행
 async function tick(client) {
@@ -41,6 +42,8 @@ function startScheduler(client) {
   };
   run();
   setInterval(run, 20_000);
+  cleanup().catch(console.error);
+  setInterval(() => cleanup().catch(console.error), 3_600_000);
 }
 
 module.exports = { startScheduler };
