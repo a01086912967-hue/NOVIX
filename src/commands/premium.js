@@ -27,7 +27,7 @@ module.exports = {
       const p = await db.getPremium(interaction.guild.id);
       const l = await db.getLimits(interaction.guild.id);
       const limits = `금지어 ${l.badWords}개 · 자동응답 ${l.autoResponses}개 · 레벨 보상 ${l.levelRewards}개`;
-      const shop = process.env.PUBLIC_URL ? `\n👉 ${process.env.PUBLIC_URL.replace(/\/$/, '')}/plans` : '';
+      const shop = process.env.SUPPORT_SERVER_URL ? `\n💳 결제·문의: ${process.env.SUPPORT_SERVER_URL}` : process.env.PUBLIC_URL ? `\n👉 ${process.env.PUBLIC_URL.replace(/\/$/, '')}/plans` : '';
       const e = p
         ? embed('💎 프리미엄 사용 중', `**플랜:** ${db.PLANS[p.plan]?.name || p.plan}\n**만료:** <t:${Math.floor(new Date(p.expires_at) / 1000)}:f> (<t:${Math.floor(new Date(p.expires_at) / 1000)}:R>)\n**한도:** ${limits}\n연장하면 남은 기간 뒤에 이어 붙어요.${shop}`)
         : embed('무료 플랜', `**한도:** ${limits}\n프리미엄 ${db.PLANS.premium.price.toLocaleString('ko-KR')}원 · 프리미엄+ ${db.PLANS.premium_plus.price.toLocaleString('ko-KR')}원 (30일)${shop}`);

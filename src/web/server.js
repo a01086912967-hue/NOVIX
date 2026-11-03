@@ -38,6 +38,33 @@ function startWeb(client) {
     next();
   });
 
+  // ── 입금 알림 받는 곳 ──
+  // 문자 전달 앱·입금확인 서비스가 여기로 보내요. 형식이 깨진 JSON이어도 읽을 수 있게 글자 그대로 받아서 직접 해석해요.
+  const depositKeyOk = (req) => {
+    const secret = process.env.DEPOSIT_SECRET;
+    if (!secret || secret.length < 16) return false;
+    const given = String(req.get('x-deposit-key') || (req.get('authorization') || '').replace(/^Bearer\s+/i, '') || req.query.key || '');
+    return given.length === secret.length && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(secret));
+  };
+  app.post('/api/deposit', express.text({ type: () => true, limit: '16kb' }), async (req, res) => {
+    if (!depositKeyOk(req)) return res.status(401).json({ error: 'unauthorized' });
+    const rawBody = typeof req.body === 'string' ? req.body : '';
+    let b = {};
+    try { b = JSON.parse(rawBody); } catch {
+      if (/^[\w%.-]+=/.test(rawBody)) b = Object.fromEntries(new URLSearchParams(rawBody));
+    }
+    if (typeof b !== 'object' || b === null) b = {};
+    // 정해진 칸이 없으면 받은 글자 전체를 알림 문장으로 봐요
+    const text = b.text ?? b.message ?? b.msg ?? b.body ?? b.content ?? (b.name || b.amount ? null : rawBody);
+    try {
+      const result = await handleDeposit(client, { name: b.name ?? b.depositor ?? null, amount: b.amount ?? null, text });
+      res.json(result);
+    } catch (err) {
+      console.error('입금 알림 처리 실패:', err);
+      res.status(500).json({ error: '처리 중 오류' });
+    }
+  });
+
   app.use(express.json({ limit: '64kb' }));
   app.use(
     cookieSession({
@@ -126,6 +153,14 @@ function startWeb(client) {
     req.session = null;
     res.redirect('/');
   });
+
+  // 공식 디스코드 서버 (결제·문의). Railway 변수 SUPPORT_SERVER_URL 에 초대 링크
+  const supportUrl = () => {
+    const u = process.env.SUPPORT_SERVER_URL || '';
+    return /^https:\/\/(discord\.gg|discord\.com\/invite)\/[\w-]+$/i.test(u) ? u : null;
+  };
+  app.get('/support', (req, res) => (supportUrl() ? res.redirect(supportUrl()) : res.redirect('/checkout')));
+  app.get('/api/support', (req, res) => res.json({ url: supportUrl() }));
 
   app.get('/invite', (req, res) => {
     const u = new URL('https://discord.com/oauth2/authorize');
@@ -326,21 +361,6 @@ function startWeb(client) {
   app.post('/api/orders/:id/cancel', needLogin, async (req, res) => {
     await db.query(`UPDATE orders SET status = 'cancelled' WHERE id = $1 AND user_id = $2 AND status = 'pending'`, [Number(req.params.id) || 0, req.session.user.id]);
     res.json({ ok: true });
-  });
-
-  // 입금 알림 받는 곳: 문자·푸시 전달 앱이나 입금확인 서비스가 여기로 보내요
-  const depositKeyOk = (req) => {
-    const secret = process.env.DEPOSIT_SECRET;
-    if (!secret || secret.length < 16) return false;
-    const given = String(req.get('x-deposit-key') || (req.get('authorization') || '').replace(/^Bearer\s+/i, '') || req.query.key || '');
-    return given.length === secret.length && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(secret));
-  };
-  app.post('/api/deposit', express.urlencoded({ extended: false, limit: '16kb' }), express.text({ type: 'text/*', limit: '16kb' }), async (req, res) => {
-    if (!depositKeyOk(req)) return res.status(401).json({ error: 'unauthorized' });
-    const b = typeof req.body === 'string' ? { text: req.body } : req.body || {};
-    const text = b.text ?? b.message ?? b.msg ?? b.body ?? b.content ?? null;
-    const result = await handleDeposit(client, { name: b.name ?? b.depositor ?? null, amount: b.amount ?? null, text });
-    res.json(result);
   });
 
   // ── 웹 인증 ──
