@@ -18,17 +18,34 @@ const norm = (s) => String(s || '').replace(/[\s()[\]·.\-_*]/g, '').toLowerCase
 class PayError extends Error {}
 
 // ── 주문 만들기 ──
-async function createOrder({ guildId, userId, plan, depositor }) {
+// 입금자명 = 주문 코드 + 이름 (예: N482홍길동). 금액은 정가 그대로.
+// 코드는 주문마다 달라서, 누가 입금했는지 코드로 정확히 알아내요.
+const PREFIX = (process.env.DEPOSIT_PREFIX || 'N').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2) || 'N';
+
+async function newCode() {
+  const { rows } = await db.query(
+    `SELECT code FROM orders WHERE code IS NOT NULL AND (status = 'pending' OR created_at > now() - interval '1 day')`
+  );
+  const used = new Set(rows.map((r) => r.code));
+  for (let i = 0; i < 50; i++) {
+    const code = PREFIX + String(crypto.randomInt(100, 1000));
+    if (!used.has(code)) return code;
+  }
+  throw new PayError('지금 주문이 몰렸어요. 잠시 후 다시 시도해주세요.');
+}
+
+async function createOrder({ guildId, userId, plan, depositor, agreed }) {
   const p = db.PLANS[plan];
   if (!p) throw new PayError('플랜을 골라주세요.');
   if (!bankReady()) throw new PayError('아직 결제 계좌가 설정되지 않았어요. 봇 관리자에게 문의해주세요.');
-  const name = String(depositor || '').trim();
-  if (norm(name).length < 2 || name.length > 20) throw new PayError('입금자명을 2~20자로 정확히 써주세요. (통장에 찍히는 이름 그대로)');
+  if (!agreed) throw new PayError('본인이 직접 입금한다는 안내에 체크해주세요.');
+  const name = String(depositor || '').replace(/\s+/g, '');
+  if (!/^[가-힣a-zA-Z]{2,6}$/.test(name)) throw new PayError('이름은 한글이나 영어로 2~6자만 써주세요. (은행 입금자명 칸이 짧아서 코드와 합쳐 10자 안으로 맞춰야 해요)');
 
   await expireOrders();
-  // 같은 서버·플랜·입금자명으로 이미 대기 중인 주문이 있으면 그걸 다시 보여줌
+  // 같은 서버·플랜·이름으로 이미 대기 중인 주문이 있으면 그걸 다시 보여줌
   const { rows: same } = await db.query(
-    `SELECT * FROM orders WHERE status = 'pending' AND user_id = $1 AND guild_id = $2 AND plan = $3 AND depositor = $4 LIMIT 1`,
+    `SELECT * FROM orders WHERE status = 'pending' AND user_id = $1 AND guild_id = $2 AND plan = $3 AND depositor LIKE '%' || $4 LIMIT 1`,
     [userId, guildId, plan, name]
   );
   if (same[0]) return same[0];
@@ -36,18 +53,11 @@ async function createOrder({ guildId, userId, plan, depositor }) {
   const { rows: mine } = await db.query(`SELECT COUNT(*)::int AS n FROM orders WHERE status = 'pending' AND user_id = $1`, [userId]);
   if (mine[0].n >= MAX_PENDING_PER_USER) throw new PayError('입금 대기 중인 주문이 너무 많아요. 기존 주문을 취소하거나 입금해주세요.');
 
-  // 정가 + 1~99원: 지금 대기 중인 다른 주문과 겹치지 않는 금액
-  const { rows: used } = await db.query(`SELECT amount FROM orders WHERE status = 'pending'`);
-  const taken = new Set(used.map((r) => r.amount));
-  const free = [];
-  for (let k = 1; k <= 99; k++) if (!taken.has(p.price + k)) free.push(p.price + k);
-  if (!free.length) throw new PayError('지금 주문이 몰렸어요. 잠시 후 다시 시도해주세요.');
-  const amount = free[crypto.randomInt(free.length)];
-
+  const code = await newCode();
   const { rows } = await db.query(
-    `INSERT INTO orders (guild_id, user_id, plan, amount, depositor, expires_at)
-     VALUES ($1, $2, $3, $4, $5, now() + make_interval(mins => $6::int)) RETURNING *`,
-    [guildId, userId, plan, amount, name, ORDER_MINUTES]
+    `INSERT INTO orders (guild_id, user_id, plan, amount, depositor, code, expires_at)
+     VALUES ($1, $2, $3, $4, $5, $6, now() + make_interval(mins => $7::int)) RETURNING *`,
+    [guildId, userId, plan, p.price, code + name, code, ORDER_MINUTES]
   );
   return rows[0];
 }
@@ -115,24 +125,24 @@ async function handleDeposit(client, input) {
   const depositId = dep[0].id;
   if (!amounts.length) return { matched: false, reason: '금액을 못 찾았어요.' };
 
+  // 알림 안에서 주문 코드 찾기 (대소문자·띄어쓰기 무시)
+  const hay = `${name || ''} ${raw || ''}`.toUpperCase().replace(/\s+/g, '');
+  const codes = [...new Set(hay.match(new RegExp(`${PREFIX}\\d{3}`, 'g')) || [])];
+  if (!codes.length) {
+    await notifyOwner(client, embed('⚠️ 확인 필요한 입금', `입금자명에 주문 코드(${PREFIX}000 형식)가 없어요.\n**입금자명:** ${name || '(원문 참고)'} · **금액:** ${amounts.map((a) => a.toLocaleString('ko-KR') + '원').join(', ')}\n${raw ? `**원문:** ${raw.slice(0, 300)}\n` : ''}⚠️ 모르는 사람이 대신 입금한 **3자 사기**일 수 있어요. 확인 전엔 승인하지 마세요.`));
+    return { matched: false, reason: '입금자명에 주문 코드가 없어요.', depositId };
+  }
+
   // 기한이 막 지난 주문도 10분까지는 받아줌 (늦게 입금하는 경우)
   const { rows: candidates } = await db.query(
-    `SELECT * FROM orders WHERE amount = ANY($1::int[]) AND (status = 'pending' OR (status = 'expired' AND expires_at > now() - interval '10 minutes'))`,
-    [amounts]
+    `SELECT * FROM orders WHERE code = ANY($1::text[]) AND (status = 'pending' OR (status = 'expired' AND expires_at > now() - interval '10 minutes'))`,
+    [codes]
   );
-  const hay = norm(`${name || ''} ${raw || ''}`);
-  const nameOk = (o) => {
-    const d = norm(o.depositor);
-    if (name) { const n = norm(name); return n === d || (n.length >= 2 && (d.startsWith(n) || n.startsWith(d))); }
-    if (hay.includes(d)) return true;
-    // 은행이 이름을 잘라 보내는 경우 (예: 김민수 → 김민). 금액이 주문마다 달라서 앞부분만 맞아도 충분
-    return d.length >= 3 && hay.includes(d.slice(0, Math.min(3, d.length - 1)));
-  };
-  const hits = candidates.filter(nameOk);
+  const hits = candidates.filter((o) => amounts.includes(o.amount));
 
   if (hits.length !== 1) {
-    const why = !candidates.length ? '금액이 맞는 주문이 없어요.' : !hits.length ? '금액은 맞는데 입금자명이 달라요.' : '같은 조건의 주문이 여러 개예요.';
-    await notifyOwner(client, embed('⚠️ 확인 필요한 입금', `${why}\n**입금자명:** ${name || '(알림 원문 참고)'} · **금액:** ${amounts.map((a) => a.toLocaleString('ko-KR') + '원').join(', ')}\n${raw ? `**원문:** ${raw.slice(0, 300)}\n` : ''}맞는 주문이면 \`/결제 승인 주문번호:\`로 처리하세요. (\`/결제 목록\`)`));
+    const why = !candidates.length ? '코드가 맞는 대기 주문이 없어요.' : !hits.length ? `코드는 맞는데 금액이 달라요 (주문 ${candidates[0].amount.toLocaleString('ko-KR')}원).` : '같은 코드의 주문이 여러 개예요.';
+    await notifyOwner(client, embed('⚠️ 확인 필요한 입금', `${why}\n**코드:** ${codes.join(', ')} · **금액:** ${amounts.map((a) => a.toLocaleString('ko-KR') + '원').join(', ')}\n${raw ? `**원문:** ${raw.slice(0, 300)}\n` : ''}맞으면 \`/결제 승인 주문번호:\`, 아니면 입금자에게 돌려주세요. (\`/결제 목록\`)`));
     return { matched: false, reason: why, depositId };
   }
 
@@ -142,4 +152,4 @@ async function handleDeposit(client, input) {
   return { matched: !!done, orderId: order.id };
 }
 
-module.exports = { createOrder, expireOrders, markPaid, handleDeposit, bank, bankReady, PayError, ORDER_MINUTES, amountsIn };
+module.exports = { PREFIX, createOrder, expireOrders, markPaid, handleDeposit, bank, bankReady, PayError, ORDER_MINUTES, amountsIn };

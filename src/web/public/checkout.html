@@ -56,6 +56,13 @@
   li.now .dot { border: 2px solid var(--accent); color: var(--accent-text); }
   .success { text-align: center; align-items: center; }
   .success .icon { width: 76px; height: 76px; border-radius: 50%; background: rgba(126,226,168,.15); display: flex; align-items: center; justify-content: center; }
+  .warn { padding: 16px; border-radius: 14px; background: #3A1820; border: 1px solid #6B2A38; font-size: 14px; line-height: 1.7; color: #FFD9DF; }
+  .warn > b:first-child { display: block; margin-bottom: 4px; font-size: 15px; color: #FFB3C0; }
+  .warn p { margin: 4px 0 0; }
+  .agree { flex-direction: row; align-items: flex-start; gap: 10px; color: var(--text); font-size: 14px; line-height: 1.6; cursor: pointer; }
+  .agree input { width: 22px; height: 22px; margin: 0; flex: none; accent-color: var(--accent); }
+  dl > div.hl { background: rgba(123,107,255,.12); margin: 0 -18px; padding: 10px 18px; }
+  dt small { font-size: 12px; }
   .orders { display: flex; flex-direction: column; gap: 8px; }
   .orders a { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 12px 14px; border-radius: 12px; background: var(--panel2); color: var(--text); text-decoration: none; font-size: 14px; }
   @media (max-width: 640px) {
@@ -81,7 +88,7 @@
 
 <main>
   <h1>계좌이체로 결제</h1>
-  <p class="sub">입금자명과 금액이 맞으면 자동으로 확인되고, 바로 서버에 적용돼요.</p>
+  <p class="sub">주문 코드가 붙은 입금자명으로 입금하면 자동으로 확인되고, 바로 서버에 적용돼요.</p>
 
   <section class="card" id="needLogin" hidden style="max-width: 520px">
     <h2>먼저 로그인해주세요</h2>
@@ -101,7 +108,13 @@
       <fieldset id="plans"><legend>플랜 (30일)</legend></fieldset>
       <label>적용할 서버<select id="guild"></select></label>
       <p class="note" id="noGuild" hidden>NOVIX가 들어가 있고, 내가 관리 권한을 가진 서버가 없어요. <a href="/invite">봇 초대하기 →</a></p>
-      <label>입금자명 (통장에 찍히는 이름 그대로)<input type="text" id="depositor" maxlength="20" placeholder="홍길동" autocomplete="name"></label>
+      <label>내 이름 (한글·영어 2~6자)<input type="text" id="depositor" maxlength="6" placeholder="홍길동" autocomplete="name"></label>
+      <div class="warn" role="note">
+        <b>🚨 3자 사기 주의</b>
+        <p>누군가 "이 계좌로 대신 입금해달라", "물건값을 이 계좌로 보내라"고 했다면 <b>사기예요.</b> 입금하지 마세요.</p>
+        <p>NOVIX 결제는 <b>프리미엄을 쓸 본인</b>이 <b>본인 계좌에서 직접</b> 입금해야 해요. 다른 사람이 대신 입금한 게 확인되면 승인하지 않고, 입금한 분께 돌려드려요.</p>
+      </div>
+      <label class="agree"><input type="checkbox" id="agreed"><span>프리미엄을 쓸 <b>본인</b>이 <b>본인 계좌</b>에서 직접 입금할게요. 남의 부탁으로 대신 입금하는 게 아니에요.</span></label>
       <button class="btn" id="make" type="button">주문 만들기</button>
       <p class="toast" id="formMsg" role="status" aria-live="polite"></p>
     </section>
@@ -116,10 +129,10 @@
         <div><dt>은행</dt><dd id="bName"></dd></div>
         <div><dt>계좌번호</dt><dd><span id="bAcc" style="font-family: 'Space Grotesk', sans-serif"></span><button class="btn ghost small" type="button" data-copy="bAcc" aria-label="계좌번호 복사">복사</button></dd></div>
         <div><dt>예금주</dt><dd id="bHolder"></dd></div>
-        <div><dt>입금자명</dt><dd id="oName"></dd></div>
-        <div><dt>입금 금액</dt><dd><span class="big" id="oAmount"></span><button class="btn ghost small" type="button" data-copy="oAmountRaw" aria-label="금액 복사">복사</button><span id="oAmountRaw" hidden></span></dd></div>
+        <div><dt>입금 금액</dt><dd><span class="big" id="oAmount"></span></dd></div>
+        <div class="hl"><dt>입금자명<br><small>(받는 분 통장 표시)</small></dt><dd><span class="big" id="oName"></span><button class="btn ghost small" type="button" data-copy="oName" aria-label="입금자명 복사">복사</button></dd></div>
       </dl>
-      <p class="note" id="payNote" hidden>⚠️ <b>금액 끝자리까지 정확히</b> 입금해주세요. 주문마다 끝자리가 달라서, 그걸로 누가 입금했는지 자동으로 알아내요.</p>
+      <p class="note" id="payNote" hidden>⚠️ 은행 앱에서 보낼 때 <b>"받는 분 통장 표시"</b>(입금자명) 칸에 <b id="oName2"></b>을 <b>그대로</b> 써주세요. 앞의 <b>코드</b>로 누가 입금했는지 자동으로 알아내요. 코드가 없으면 자동 확인이 안 돼요.<br>🚨 이 계좌와 입금자명을 <b>다른 사람에게 알려주지 마세요.</b> 대신 입금하게 하면 사기에 이용될 수 있어요.</p>
       <ol class="steps" id="steps">
         <li id="s1"><span class="dot">1</span>주문 만들기</li>
         <li id="s2"><span class="dot">2</span>입금 확인 중 (자동, 보통 몇 분)</li>
@@ -178,7 +191,7 @@
     $('payInfo').hidden = !pending; $('payNote').hidden = !pending; $('payActions').hidden = !pending;
     if (pending && o.bank) {
       $('bName').textContent = o.bank.name; $('bAcc').textContent = o.bank.account; $('bHolder').textContent = o.bank.holder;
-      $('oName').textContent = o.depositor; $('oAmount').textContent = won(o.amount); $('oAmountRaw').textContent = String(o.amount);
+      $('oName').textContent = o.depositor; $('oName2').textContent = o.depositor; $('oAmount').textContent = won(o.amount);
       setStep(2);
       clearInterval(tick);
       const upd = () => {
@@ -210,7 +223,7 @@
     const plan = document.querySelector('input[name=plan]:checked')?.value;
     $('make').disabled = true;
     try {
-      const { order: o } = await api('/api/orders', { method: 'POST', body: JSON.stringify({ plan, guildId: $('guild').value, depositor: $('depositor').value }) });
+      const { order: o } = await api('/api/orders', { method: 'POST', body: JSON.stringify({ plan, guildId: $('guild').value, depositor: $('depositor').value, agreed: $('agreed').checked }) });
       toast($('formMsg'), '✅ 주문을 만들었어요. 오른쪽(아래) 계좌로 입금해주세요.', true);
       showOrder(o); loadHistory();
       if (matchMedia('(max-width: 900px)').matches) $('payCard').scrollIntoView({ behavior: 'smooth' });

@@ -283,7 +283,7 @@ function startWeb(client) {
     const b = bank();
     const g = client.guilds.cache.get(o.guild_id);
     return {
-      id: o.id, plan: o.plan, planName: db.PLANS[o.plan]?.name, amount: o.amount, depositor: o.depositor,
+      id: o.id, plan: o.plan, planName: db.PLANS[o.plan]?.name, amount: o.amount, depositor: o.depositor, code: o.code,
       status: o.status, expiresAt: o.expires_at, paidAt: o.paid_at,
       guild: { id: o.guild_id, name: g?.name || o.guild_id },
       bank: o.status === 'pending' ? b : null,
@@ -301,7 +301,7 @@ function startWeb(client) {
     const member = await guild.members.fetch(req.session.user.id).catch(() => null);
     if (!member?.permissions.has(PermissionFlagsBits.ManageGuild)) return res.status(403).json({ error: '이 서버의 관리 권한이 없어요.' });
     try {
-      const o = await createOrder({ guildId: gid, userId: req.session.user.id, plan: req.body.plan, depositor: req.body.depositor });
+      const o = await createOrder({ guildId: gid, userId: req.session.user.id, plan: req.body.plan, depositor: req.body.depositor, agreed: req.body.agreed === true });
       res.json({ order: orderView(o) });
     } catch (err) {
       if (err instanceof PayError) return res.status(400).json({ error: err.message });

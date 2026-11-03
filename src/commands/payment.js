@@ -30,7 +30,7 @@ module.exports = {
     .addSubcommand((s) => s.setName('입금기록').setDescription('최근 들어온 입금 알림 (주문과 안 맞은 것 확인용)'))
     .addSubcommand((s) =>
       s.setName('테스트').setDescription('입금 알림 문장을 넣어서 자동 매칭이 되는지 시험 (실제로 승인돼요)')
-        .addStringOption((o) => o.setName('문장').setDescription('예: [Web발신] 입금 3,537원 홍길동').setRequired(true).setMaxLength(500))
+        .addStringOption((o) => o.setName('문장').setDescription('예: [Web발신] 입금 3,500원 N482홍길동').setRequired(true).setMaxLength(500))
     ),
 
   async execute(interaction, client) {

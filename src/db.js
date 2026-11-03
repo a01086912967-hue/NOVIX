@@ -156,7 +156,7 @@ async function init() {
     );
     CREATE INDEX IF NOT EXISTS verifications_ip ON verifications (guild_id, ip_hash);
 
-    -- 계좌이체 주문 (amount = 정가 + 주문마다 다른 끝자리)
+    -- 계좌이체 주문 (입금자명 = 주문 코드 + 이름, 예: N482홍길동)
     CREATE TABLE IF NOT EXISTS orders (
       id SERIAL PRIMARY KEY,
       guild_id TEXT NOT NULL,
@@ -170,7 +170,9 @@ async function init() {
       paid_at TIMESTAMPTZ,
       paid_by TEXT                               -- auto / 수동 승인한 사람 ID
     );
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS code TEXT;
     CREATE INDEX IF NOT EXISTS orders_pending ON orders (status, amount);
+    CREATE INDEX IF NOT EXISTS orders_code ON orders (code);
 
     -- 들어온 입금 알림 기록 (매칭 안 된 것은 수동 확인용)
     CREATE TABLE IF NOT EXISTS deposits (
