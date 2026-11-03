@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NOVIX 결제</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%2312142B'/%3E%3Cpolygon points='142,128 222,128 370,384 290,384' fill='%237B6BFF'/%3E%3Crect x='124' y='128' width='58' height='256' rx='12' fill='%23F2F2F7'/%3E%3Crect x='330' y='128' width='58' height='256' rx='12' fill='%23F2F2F7'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Noto+Sans+KR:wght@400;500;700;900&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E1024}
+a{color:#B3AAFF}a:hover{color:#D6D1FF}
+</style>
+<style>html{scroll-behavior:smooth}*{box-sizing:border-box}</style>
+<link rel="stylesheet" href="/responsive.css">
+</head>
+<body>
+<div style="background: #0E1024; color: #F2F2F7; font-family: 'Noto Sans KR', system-ui, sans-serif; min-height: 100vh">
+
+  <header style="border-bottom: 1px solid #23264A">
+    <nav style="max-width: 1200px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+      <a href="/" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #F2F2F7">
+        <svg width="32" height="32" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#1B1E3D"/><polygon points="142,128 222,128 370,384 290,384" fill="#7B6BFF"/><rect x="124" y="128" width="58" height="256" rx="12" fill="#F2F2F7"/><rect x="330" y="128" width="58" height="256" rx="12" fill="#F2F2F7"/></svg>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.04em">NOVIX</span>
+      </a>
+      <a href="/plans" style="color: #C4C6DD; text-decoration: none; font-size: 15px">← 플랜으로 돌아가기</a>
+    </nav>
+  </header>
+
+  <section style="max-width: 1100px; margin: 0 auto; padding: 56px 24px 96px">
+    <h1 style="margin: 0 0 8px; font-size: 36px; font-weight: 900">계좌이체로 결제</h1>
+    <p style="margin: 0 0 40px; font-size: 16px; color: #A9ABC6">입금자명과 금액이 맞으면 자동으로 확인돼요.</p>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+
+      <!-- 주문 정보 -->
+      <div style="flex: 1 1 380px; min-width: 0; background: #161936; border: 1px solid #262A52; border-radius: 20px; padding: 32px; display: flex; flex-direction: column; gap: 20px">
+        <h2 style="margin: 0; font-size: 19px; font-weight: 700">1. 주문 정보</h2>
+        <fieldset style="margin: 0; padding: 0; border: none; display: flex; flex-direction: column; gap: 10px">
+          <legend style="margin-bottom: 10px; font-size: 13px; color: #A9ABC6">플랜</legend>
+          <label style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 0 18px; border-radius: 12px; border: 2px solid #7B6BFF; background: #1B1E3D">
+            <span style="display: flex; align-items: center; gap: 12px"><input type="radio" name="plan" checked style="width: 20px; height: 20px; accent-color: #7B6BFF">프리미엄</span><span style="color: #C4C6DD">[가격]원 / 30일</span>
+          </label>
+          <label style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 0 18px; border-radius: 12px; border: 1px solid #33366A">
+            <span style="display: flex; align-items: center; gap: 12px"><input type="radio" name="plan" style="width: 20px; height: 20px; accent-color: #7B6BFF">프리미엄+</span><span style="color: #C4C6DD">[가격]원 / 30일</span>
+          </label>
+        </fieldset>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #A9ABC6">적용할 서버
+          <select style="min-height: 48px; border-radius: 10px; background: #1B1E3D; border: 1px solid #33366A; color: #F2F2F7; font: inherit; font-size: 15px; padding: 0 12px">
+            <option>[내 서버 이름]</option>
+          </select>
+        </label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #A9ABC6">입금자명 (통장에 찍히는 이름 그대로)
+          <input type="text" placeholder="홍길동" style="min-height: 48px; border-radius: 10px; background: #1B1E3D; border: 1px solid #33366A; color: #F2F2F7; font: inherit; font-size: 15px; padding: 0 12px">
+        </label>
+        <button disabled style="min-height: 52px; border-radius: 12px; border: none; background: #33366A; color: #C4C6DD; font: inherit; font-size: 16px; font-weight: 700">결제 기능 준비 중</button>
+      </div>
+
+      <!-- 입금 안내 -->
+      <div style="flex: 1 1 380px; min-width: 0; background: #161936; border: 1px solid #262A52; border-radius: 20px; padding: 32px; display: flex; flex-direction: column; gap: 20px">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+          <h2 style="margin: 0; font-size: 19px; font-weight: 700">2. 아래 계좌로 입금</h2>
+          <span style="padding: 6px 12px; border-radius: 999px; background: #3A2F0E; color: #FFD27A; font-size: 13px; font-weight: 700">입금 대기 · [남은 시간] 남음</span>
+        </div>
+
+        <dl style="margin: 0; display: flex; flex-direction: column; gap: 0; border-radius: 14px; background: #1E2142; padding: 4px 20px">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; border-bottom: 1px solid #2D3060">
+            <dt style="font-size: 14px; color: #A9ABC6">은행</dt><dd style="margin: 0; font-size: 16px; font-weight: 500">[은행명]</dd>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; border-bottom: 1px solid #2D3060">
+            <dt style="font-size: 14px; color: #A9ABC6">계좌번호</dt>
+            <dd style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 500"><span style="font-family: 'Space Grotesk', sans-serif">[계좌번호]</span><button aria-label="계좌번호 복사" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #33366A; background: transparent; color: #D3D5E8; font: inherit; font-size: 13px; cursor: pointer">복사</button></dd>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; border-bottom: 1px solid #2D3060">
+            <dt style="font-size: 14px; color: #A9ABC6">예금주</dt><dd style="margin: 0; font-size: 16px; font-weight: 500">[예금주]</dd>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; border-bottom: 1px solid #2D3060">
+            <dt style="font-size: 14px; color: #A9ABC6">입금자명</dt><dd style="margin: 0; font-size: 16px; font-weight: 500">홍길동</dd>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 64px">
+            <dt style="font-size: 14px; color: #A9ABC6">입금 금액</dt><dd style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: #B3AAFF">[가격+끝자리]원</dd>
+          </div>
+        </dl>
+
+        <p style="margin: 0; padding: 14px 16px; border-radius: 12px; background: #26295A; font-size: 14px; line-height: 1.7; color: #D3D5E8">금액 끝자리까지 정확히 입금해주세요. 같은 시간에 주문한 다른 사람과 구분하려고 주문마다 끝자리가 달라요.</p>
+
+        <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 15px">
+          <li style="display: flex; align-items: center; gap: 12px"><span style="width: 28px; height: 28px; border-radius: 50%; background: #5B4BE8; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex: none">✓</span>주문 생성됨</li>
+          <li style="display: flex; align-items: center; gap: 12px"><span style="width: 28px; height: 28px; border-radius: 50%; border: 2px solid #7B6BFF; color: #B3AAFF; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex: none; box-sizing: border-box">2</span>입금 확인 중 (자동)</li>
+          <li style="display: flex; align-items: center; gap: 12px; color: #8E91B3"><span style="width: 28px; height: 28px; border-radius: 50%; border: 1px solid #33366A; display: flex; align-items: center; justify-content: center; font-size: 13px; flex: none; box-sizing: border-box">3</span>서버에 프리미엄 적용 + DM 알림</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

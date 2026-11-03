@@ -1,0 +1,56 @@
+/* NOVIX — 폰 · 패드 · 컴퓨터 화면 맞춤 (index, plans, checkout 공용) */
+html { -webkit-text-size-adjust: 100%; }
+body { word-break: keep-all; overflow-wrap: anywhere; } /* 한글 단어가 중간에 안 끊기게 */
+img, svg { max-width: 100%; }
+
+/* 패드 (1024px 이하) */
+@media (max-width: 1024px) {
+  h1 { font-size: 48px !important; }
+  section[style*="padding: 96px 24px 80px"] { padding: 64px 24px 56px !important; }
+}
+
+/* 폰 (640px 이하) */
+@media (max-width: 640px) {
+  h1 { font-size: clamp(30px, 9vw, 40px) !important; line-height: 1.25 !important; }
+  h2 { font-size: clamp(22px, 6.4vw, 28px) !important; }
+  p { font-size: 15px !important; }
+
+  /* 상단 메뉴: 로고 한 줄, 링크는 아래 줄에서 가로 스크롤 */
+  header nav { padding: 12px 16px !important; gap: 10px !important; }
+  header nav > div { gap: 18px !important; width: 100%; flex-wrap: nowrap !important; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  header nav > div::-webkit-scrollbar { display: none; }
+  header nav > div > a { flex: none; white-space: nowrap; }
+  header nav { position: relative; }
+  header nav > div > a[href="/login"] { position: absolute; top: 10px; right: 16px; min-height: 40px !important; padding: 0 14px !important; font-size: 14px; }
+
+  /* 섹션 여백 줄이기 */
+  section { padding-left: 16px !important; padding-right: 16px !important; }
+  section[style*="padding: 96px"], section[style*="padding: 80px"] { padding-top: 48px !important; padding-bottom: 32px !important; }
+  section[style*="padding: 64px"] { padding-top: 40px !important; padding-bottom: 40px !important; }
+  section[style*="padding: 56px"] { padding-top: 32px !important; }
+
+  /* 큰 카드 안쪽 여백 */
+  div[style*="padding: 48px"] { padding: 24px !important; gap: 28px !important; }
+  div[style*="padding: 56px 48px"] { padding: 28px 22px !important; }
+  div[style*="padding: 32px"] { padding: 22px !important; }
+  div[style*="padding: 28px"] { padding: 22px !important; }
+
+  /* 버튼은 손가락으로 누르기 쉽게 꽉 채우기 */
+  section a[style*="min-height: 52px"] { flex: 1 1 100%; justify-content: center; }
+
+  /* 결제 정보 줄: 길면 아래로 내려가게 */
+  dl > div { flex-wrap: wrap; padding: 8px 0; }
+  dd { word-break: break-all; }
+  dd[style*="font-size: 26px"] { font-size: 22px !important; }
+
+  /* 아이폰에서 입력칸 누를 때 화면 확대 방지 (16px 이상) */
+  input, select, textarea { font-size: 16px !important; }
+
+  footer div { flex-direction: column; }
+}
+
+/* 아주 작은 폰 (360px 이하) */
+@media (max-width: 360px) {
+  header nav > div { gap: 14px !important; font-size: 14px !important; }
+  span[style*="font-size: 44px"] { font-size: 36px !important; }
+}
