@@ -7,6 +7,10 @@ const db = require('../db');
 const { sendPayload, buildEmbed } = require('../utils/messages');
 const { createAutoMessage, listAutoMessages, MIN_INTERVAL } = require('../utils/autoMessages');
 const { readToken, runVerification, checkTurnstile } = require('../utils/verify');
+const { readSettings, saveSection, Bad } = require('./settingsApi');
+const { buildWelcome } = require('../utils/welcome');
+const { buildVerifyPanel } = require('../utils/verifyPanel');
+const { createOrder, expireOrders, handleDeposit, bank, bankReady, PayError, ORDER_MINUTES } = require('../utils/payments');
 
 const API = 'https://discord.com/api/v10';
 
@@ -60,7 +64,7 @@ function startWeb(client) {
 
   // ── 다른 사이트에서 몰래 요청 보내는 것 막기 (CSRF) ──
   app.use('/api', (req, res, next) => {
-    if (req.method === 'GET') return next();
+    if (req.method === 'GET' || req.path === '/deposit') return next(); // 입금 알림은 비밀 키로 따로 검사
     if (origin && req.get('origin') !== origin) return res.status(403).json({ error: '잘못된 요청이에요.' });
     next();
   });
@@ -69,6 +73,9 @@ function startWeb(client) {
   app.get('/login', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     req.session.state = state;
+    // 로그인 후 돌아갈 곳 (우리 사이트 안의 주소만 허용)
+    const next = String(req.query.next || '');
+    req.session.next = /^\/[a-z0-9/_-]*$/i.test(next) && !next.startsWith('//') ? next : null;
     const u = new URL('https://discord.com/oauth2/authorize');
     u.search = new URLSearchParams({ client_id: DISCORD_CLIENT_ID, response_type: 'code', redirect_uri: redirectUri, scope: 'identify guilds', state, prompt: 'none' });
     res.redirect(u.toString());
@@ -103,11 +110,12 @@ function startWeb(client) {
             .sort((a, b) => Number(client.guilds.cache.has(b.id)) - Number(client.guilds.cache.has(a.id)))
             .slice(0, 35) // 쿠키 크기 제한(4KB) 때문에 최대 35개
         : [];
+      const next = req.session.next || '/app';
       req.session = {
         user: { id: user.id, name: (user.global_name || user.username).slice(0, 32), avatar: user.avatar },
         guilds: manageable.map((g) => [g.id, g.name.slice(0, 30), g.icon]),
       };
-      res.redirect('/app');
+      res.redirect(next);
     } catch (err) {
       console.error('로그인 실패:', err);
       res.redirect('/?error=login');
@@ -226,6 +234,113 @@ function startWeb(client) {
   app.delete('/api/guilds/:gid/auto/:id', needLogin, needGuild, async (req, res) => {
     await db.query('DELETE FROM auto_messages WHERE id = $1 AND guild_id = $2', [Number(req.params.id), req.guild.id]);
     res.json({ ok: true });
+  });
+
+  // ── 서버 설정 (대시보드) ──
+  app.get('/api/guilds/:gid/settings', needLogin, needGuild, async (req, res) => {
+    res.json(await readSettings(req.guild));
+  });
+
+  app.post('/api/guilds/:gid/settings/:section', needLogin, needGuild, async (req, res) => {
+    try {
+      await saveSection(req.guild, req.member, req.params.section, req.body);
+      res.json({ ok: true });
+    } catch (err) {
+      if (err instanceof Bad) return res.status(400).json({ error: err.message });
+      console.error('설정 저장 실패:', err);
+      res.status(500).json({ error: '저장 중 오류가 났어요.' });
+    }
+  });
+
+  app.post('/api/guilds/:gid/welcome-test', needLogin, needGuild, async (req, res) => {
+    const s = await db.getSettings(req.guild.id);
+    const ch = s.welcomeChannel && req.guild.channels.cache.get(s.welcomeChannel);
+    if (!ch?.isTextBased()) return res.status(400).json({ error: '먼저 환영 채널을 저장해주세요.' });
+    try {
+      const msg = buildWelcome(req.member, s);
+      await ch.send({ ...msg, content: `**[테스트]** ${msg.content || ''}`, allowedMentions: { parse: [] } });
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(400).json({ error: `보내기 실패: ${err.message}` });
+    }
+  });
+
+  app.post('/api/guilds/:gid/verify-panel', needLogin, needGuild, async (req, res) => {
+    const s = await db.getSettings(req.guild.id);
+    if (!s.verifyRole) return res.status(400).json({ error: '먼저 인증 역할을 고르고 저장해주세요.' });
+    const channel = getChannel(req);
+    if (!channel) return res.status(400).json({ error: '인증 메시지를 보낼 채널을 골라주세요.' });
+    try {
+      await channel.send(buildVerifyPanel(req.guild, s, req.body || {}));
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(400).json({ error: `보내기 실패: ${err.message}` });
+    }
+  });
+
+  // ── 결제 (계좌이체) ──
+  const orderView = (o) => {
+    const b = bank();
+    const g = client.guilds.cache.get(o.guild_id);
+    return {
+      id: o.id, plan: o.plan, planName: db.PLANS[o.plan]?.name, amount: o.amount, depositor: o.depositor,
+      status: o.status, expiresAt: o.expires_at, paidAt: o.paid_at,
+      guild: { id: o.guild_id, name: g?.name || o.guild_id },
+      bank: o.status === 'pending' ? b : null,
+    };
+  };
+
+  app.get('/api/plans', (req, res) => {
+    res.json({ plans: db.PLANS, limits: db.PLAN_LIMITS, ready: bankReady(), orderMinutes: ORDER_MINUTES });
+  });
+
+  app.post('/api/orders', needLogin, async (req, res) => {
+    const gid = String(req.body.guildId || '');
+    const guild = client.guilds.cache.get(gid);
+    if (!guild) return res.status(400).json({ error: 'NOVIX가 들어가 있는 서버를 골라주세요.' });
+    const member = await guild.members.fetch(req.session.user.id).catch(() => null);
+    if (!member?.permissions.has(PermissionFlagsBits.ManageGuild)) return res.status(403).json({ error: '이 서버의 관리 권한이 없어요.' });
+    try {
+      const o = await createOrder({ guildId: gid, userId: req.session.user.id, plan: req.body.plan, depositor: req.body.depositor });
+      res.json({ order: orderView(o) });
+    } catch (err) {
+      if (err instanceof PayError) return res.status(400).json({ error: err.message });
+      console.error('주문 실패:', err);
+      res.status(500).json({ error: '주문 중 오류가 났어요.' });
+    }
+  });
+
+  app.get('/api/orders/mine', needLogin, async (req, res) => {
+    await expireOrders();
+    const { rows } = await db.query('SELECT * FROM orders WHERE user_id = $1 ORDER BY id DESC LIMIT 10', [req.session.user.id]);
+    res.json({ orders: rows.map(orderView) });
+  });
+
+  app.get('/api/orders/:id', needLogin, async (req, res) => {
+    await expireOrders();
+    const { rows } = await db.query('SELECT * FROM orders WHERE id = $1 AND user_id = $2', [Number(req.params.id) || 0, req.session.user.id]);
+    if (!rows[0]) return res.status(404).json({ error: '주문을 찾을 수 없어요.' });
+    res.json({ order: orderView(rows[0]) });
+  });
+
+  app.post('/api/orders/:id/cancel', needLogin, async (req, res) => {
+    await db.query(`UPDATE orders SET status = 'cancelled' WHERE id = $1 AND user_id = $2 AND status = 'pending'`, [Number(req.params.id) || 0, req.session.user.id]);
+    res.json({ ok: true });
+  });
+
+  // 입금 알림 받는 곳: 문자·푸시 전달 앱이나 입금확인 서비스가 여기로 보내요
+  const depositKeyOk = (req) => {
+    const secret = process.env.DEPOSIT_SECRET;
+    if (!secret || secret.length < 16) return false;
+    const given = String(req.get('x-deposit-key') || (req.get('authorization') || '').replace(/^Bearer\s+/i, '') || req.query.key || '');
+    return given.length === secret.length && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(secret));
+  };
+  app.post('/api/deposit', express.urlencoded({ extended: false, limit: '16kb' }), express.text({ type: 'text/*', limit: '16kb' }), async (req, res) => {
+    if (!depositKeyOk(req)) return res.status(401).json({ error: 'unauthorized' });
+    const b = typeof req.body === 'string' ? { text: req.body } : req.body || {};
+    const text = b.text ?? b.message ?? b.msg ?? b.body ?? b.content ?? null;
+    const result = await handleDeposit(client, { name: b.name ?? b.depositor ?? null, amount: b.amount ?? null, text });
+    res.json(result);
   });
 
   // ── 웹 인증 ──

@@ -44,11 +44,32 @@ const DEFAULTS = {
     minAccountAgeDays: 0,
   },
   ticket: { categoryId: null, staffRole: null },
+  karaoke: {
+    voiceChannel: null,   // 노래방 음성 채널
+    panelChannel: null,   // 패널을 올릴 채팅 채널
+    panelMessageId: null,
+    stageMode: false,     // 부르는 사람 빼고 음소거
+  },
   lockdownChannels: [], // 비상잠금으로 잠근 채널 (해제할 때 이것만 풂)
 };
 
-// 무료 플랜 제한
+// 플랜 (가격은 원, 기간은 일)
+const PLANS = {
+  premium: { name: '프리미엄', price: 3500, days: 30 },
+  premium_plus: { name: '프리미엄+', price: 9900, days: 30 },
+};
+
+// 플랜별 제한
 const FREE_LIMITS = { badWords: 30, autoResponses: 10, levelRewards: 3 };
+const PLAN_LIMITS = {
+  free: FREE_LIMITS,
+  premium: { badWords: 200, autoResponses: 50, levelRewards: 20 },
+  premium_plus: { badWords: 500, autoResponses: 100, levelRewards: 50 },
+};
+async function getLimits(guildId) {
+  const p = await getPremium(guildId);
+  return PLAN_LIMITS[p?.plan] || FREE_LIMITS;
+}
 
 const cache = new Map();
 
@@ -135,6 +156,45 @@ async function init() {
     );
     CREATE INDEX IF NOT EXISTS verifications_ip ON verifications (guild_id, ip_hash);
 
+    -- 계좌이체 주문 (amount = 정가 + 주문마다 다른 끝자리)
+    CREATE TABLE IF NOT EXISTS orders (
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      plan TEXT NOT NULL,
+      amount INT NOT NULL,
+      depositor TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',   -- pending / paid / expired / cancelled
+      created_at TIMESTAMPTZ DEFAULT now(),
+      expires_at TIMESTAMPTZ NOT NULL,
+      paid_at TIMESTAMPTZ,
+      paid_by TEXT                               -- auto / 수동 승인한 사람 ID
+    );
+    CREATE INDEX IF NOT EXISTS orders_pending ON orders (status, amount);
+
+    -- 들어온 입금 알림 기록 (매칭 안 된 것은 수동 확인용)
+    CREATE TABLE IF NOT EXISTS deposits (
+      id SERIAL PRIMARY KEY,
+      name TEXT,
+      amount INT,
+      raw TEXT,
+      order_id INT,
+      received_at TIMESTAMPTZ DEFAULT now()
+    );
+
+    -- 노래방 점수 기록
+    CREATE TABLE IF NOT EXISTS karaoke_scores (
+      id SERIAL PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      song TEXT NOT NULL,
+      avg_score REAL,          -- 관객 평균 (1~5), 투표 없으면 null
+      votes INT NOT NULL DEFAULT 0,
+      machine_score INT,       -- 재미용 노래방 기계 점수
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS karaoke_scores_guild ON karaoke_scores (guild_id, user_id);
+
     CREATE TABLE IF NOT EXISTS premium (
       guild_id TEXT PRIMARY KEY,
       plan TEXT NOT NULL,
@@ -154,6 +214,7 @@ function merge(saved) {
     ticket: { ...DEFAULTS.ticket, ...(saved.ticket || {}) },
     welcomeEmbed: { ...DEFAULTS.welcomeEmbed, ...(saved.welcomeEmbed || {}) },
     verify: { ...DEFAULTS.verify, ...(saved.verify || {}) },
+    karaoke: { ...DEFAULTS.karaoke, ...(saved.karaoke || {}) },
     lockdownChannels: saved.lockdownChannels || [],
     autoResponses: saved.autoResponses || [],
   };
@@ -223,7 +284,7 @@ async function revokePremium(guildId) {
 }
 
 module.exports = {
-  query, init, getSettings, updateSettings, FREE_LIMITS,
+  query, init, getSettings, updateSettings, FREE_LIMITS, PLAN_LIMITS, PLANS, getLimits,
   addWarning, getWarnings, clearWarnings,
   addTimer, getPremium, grantPremium, revokePremium,
 };

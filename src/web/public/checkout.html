@@ -4,93 +4,267 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NOVIX 결제</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%2312142B'/%3E%3Cpolygon points='142,128 222,128 370,384 290,384' fill='%237B6BFF'/%3E%3Crect x='124' y='128' width='58' height='256' rx='12' fill='%23F2F2F7'/%3E%3Crect x='330' y='128' width='58' height='256' rx='12' fill='%23F2F2F7'/%3E%3C/svg%3E">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Noto+Sans+KR:wght@400;500;700;900&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="/icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:#0E1024}
-a{color:#B3AAFF}a:hover{color:#D6D1FF}
+  :root { --bg: #0E1024; --panel: #161936; --panel2: #1E2142; --line: #262A52; --line2: #33366A; --text: #F2F2F7; --muted: #A9ABC6; --accent: #7B6BFF; --accent-text: #B3AAFF; --btn: #5B4BE8; --ok: #7EE2A8; --err: #FF9C9C; --warn: #FFD27A; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Noto Sans KR', system-ui, sans-serif; word-break: keep-all; overflow-wrap: anywhere; }
+  a { color: var(--accent-text); }
+  header { border-bottom: 1px solid var(--line); }
+  .bar { max-width: 1100px; margin: 0 auto; padding: 16px 20px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: .04em; }
+  main { max-width: 1100px; margin: 0 auto; padding: 48px 20px 96px; }
+  h1 { margin: 0 0 8px; font-size: 34px; font-weight: 900; }
+  .sub { margin: 0 0 32px; color: var(--muted); font-size: 16px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .card { flex: 1 1 400px; min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 18px; }
+  .card h2 { margin: 0; font-size: 19px; font-weight: 700; }
+  label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+  input[type=text], select { width: 100%; min-height: 50px; border-radius: 12px; background: var(--panel2); border: 1px solid var(--line2); color: var(--text); font: inherit; font-size: 16px; padding: 0 14px; }
+  fieldset { margin: 0; padding: 0; border: none; display: flex; flex-direction: column; gap: 10px; }
+  legend { margin-bottom: 10px; font-size: 13px; color: var(--muted); }
+  .plan { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 0 18px; border-radius: 14px; border: 1px solid var(--line2); color: var(--text); font-size: 16px; cursor: pointer; }
+  .plan:has(input:checked) { border: 2px solid var(--accent); background: #1B1E3D; }
+  .plan input { width: 20px; height: 20px; accent-color: var(--accent); }
+  .plan .left { display: flex; align-items: center; gap: 12px; }
+  .plan .price { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+  .plan small { color: var(--muted); font-family: 'Noto Sans KR', sans-serif; font-weight: 400; }
+  .btn { min-height: 54px; border: none; border-radius: 12px; background: var(--btn); color: #fff; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; padding: 0 22px; }
+  .btn:disabled { opacity: .55; cursor: wait; }
+  .btn.ghost { background: transparent; border: 1px solid var(--line2); color: var(--text); }
+  .btn.small { min-height: 38px; font-size: 13px; font-weight: 500; padding: 0 12px; }
+  dl { margin: 0; background: var(--panel2); border-radius: 14px; padding: 4px 18px; }
+  dl > div { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; min-height: 58px; padding: 6px 0; border-bottom: 1px solid #2D3060; }
+  dl > div:last-child { border-bottom: none; }
+  dt { font-size: 14px; color: var(--muted); }
+  dd { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 500; }
+  .big { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: var(--accent-text); }
+  .pill { padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+  .pill.wait { background: #3A2F0E; color: var(--warn); }
+  .pill.ok { background: #123326; color: var(--ok); }
+  .pill.bad { background: #3A1820; color: var(--err); }
+  .note { margin: 0; padding: 14px 16px; border-radius: 12px; background: #26295A; font-size: 14px; line-height: 1.7; color: #D3D5E8; }
+  .toast { margin: 0; min-height: 22px; font-size: 14px; }
+  .toast.err { color: var(--err); } .toast.ok { color: var(--ok); }
+  ol.steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 15px; }
+  ol.steps li { display: flex; align-items: center; gap: 12px; color: var(--muted); }
+  ol.steps li.done, ol.steps li.now { color: var(--text); }
+  .dot { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line2); display: flex; align-items: center; justify-content: center; font-size: 13px; flex: none; }
+  li.done .dot { background: var(--btn); border-color: var(--btn); color: #fff; }
+  li.now .dot { border: 2px solid var(--accent); color: var(--accent-text); }
+  .success { text-align: center; align-items: center; }
+  .success .icon { width: 76px; height: 76px; border-radius: 50%; background: rgba(126,226,168,.15); display: flex; align-items: center; justify-content: center; }
+  .orders { display: flex; flex-direction: column; gap: 8px; }
+  .orders a { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 12px 14px; border-radius: 12px; background: var(--panel2); color: var(--text); text-decoration: none; font-size: 14px; }
+  @media (max-width: 640px) {
+    main { padding: 28px 14px 64px; }
+    h1 { font-size: 28px; }
+    .card { padding: 20px; flex-basis: 100%; }
+    .big { font-size: 24px; }
+    .btn { width: 100%; }
+    .btn.small { width: auto; }
+  }
 </style>
-<style>html{scroll-behavior:smooth}*{box-sizing:border-box}</style>
-<link rel="stylesheet" href="/responsive.css">
 </head>
 <body>
-<div style="background: #0E1024; color: #F2F2F7; font-family: 'Noto Sans KR', system-ui, sans-serif; min-height: 100vh">
+<header>
+  <div class="bar">
+    <a class="brand" href="/">
+      <svg width="30" height="30" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#1B1E3D"/><polygon points="142,128 222,128 370,384 290,384" fill="#7B6BFF"/><rect x="124" y="128" width="58" height="256" rx="12" fill="#F2F2F7"/><rect x="330" y="128" width="58" height="256" rx="12" fill="#F2F2F7"/></svg>
+      NOVIX
+    </a>
+    <a href="/plans" style="text-decoration: none; color: #C4C6DD">← 플랜으로 돌아가기</a>
+  </div>
+</header>
 
-  <header style="border-bottom: 1px solid #23264A">
-    <nav style="max-width: 1200px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
-      <a href="/" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #F2F2F7">
-        <svg width="32" height="32" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#1B1E3D"/><polygon points="142,128 222,128 370,384 290,384" fill="#7B6BFF"/><rect x="124" y="128" width="58" height="256" rx="12" fill="#F2F2F7"/><rect x="330" y="128" width="58" height="256" rx="12" fill="#F2F2F7"/></svg>
-        <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.04em">NOVIX</span>
-      </a>
-      <a href="/plans" style="color: #C4C6DD; text-decoration: none; font-size: 15px">← 플랜으로 돌아가기</a>
-    </nav>
-  </header>
+<main>
+  <h1>계좌이체로 결제</h1>
+  <p class="sub">입금자명과 금액이 맞으면 자동으로 확인되고, 바로 서버에 적용돼요.</p>
 
-  <section style="max-width: 1100px; margin: 0 auto; padding: 56px 24px 96px">
-    <h1 style="margin: 0 0 8px; font-size: 36px; font-weight: 900">계좌이체로 결제</h1>
-    <p style="margin: 0 0 40px; font-size: 16px; color: #A9ABC6">입금자명과 금액이 맞으면 자동으로 확인돼요.</p>
-
-    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
-
-      <!-- 주문 정보 -->
-      <div style="flex: 1 1 380px; min-width: 0; background: #161936; border: 1px solid #262A52; border-radius: 20px; padding: 32px; display: flex; flex-direction: column; gap: 20px">
-        <h2 style="margin: 0; font-size: 19px; font-weight: 700">1. 주문 정보</h2>
-        <fieldset style="margin: 0; padding: 0; border: none; display: flex; flex-direction: column; gap: 10px">
-          <legend style="margin-bottom: 10px; font-size: 13px; color: #A9ABC6">플랜</legend>
-          <label style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 0 18px; border-radius: 12px; border: 2px solid #7B6BFF; background: #1B1E3D">
-            <span style="display: flex; align-items: center; gap: 12px"><input type="radio" name="plan" checked style="width: 20px; height: 20px; accent-color: #7B6BFF">프리미엄</span><span style="color: #C4C6DD">[가격]원 / 30일</span>
-          </label>
-          <label style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 0 18px; border-radius: 12px; border: 1px solid #33366A">
-            <span style="display: flex; align-items: center; gap: 12px"><input type="radio" name="plan" style="width: 20px; height: 20px; accent-color: #7B6BFF">프리미엄+</span><span style="color: #C4C6DD">[가격]원 / 30일</span>
-          </label>
-        </fieldset>
-        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #A9ABC6">적용할 서버
-          <select style="min-height: 48px; border-radius: 10px; background: #1B1E3D; border: 1px solid #33366A; color: #F2F2F7; font: inherit; font-size: 15px; padding: 0 12px">
-            <option>[내 서버 이름]</option>
-          </select>
-        </label>
-        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #A9ABC6">입금자명 (통장에 찍히는 이름 그대로)
-          <input type="text" placeholder="홍길동" style="min-height: 48px; border-radius: 10px; background: #1B1E3D; border: 1px solid #33366A; color: #F2F2F7; font: inherit; font-size: 15px; padding: 0 12px">
-        </label>
-        <button disabled style="min-height: 52px; border-radius: 12px; border: none; background: #33366A; color: #C4C6DD; font: inherit; font-size: 16px; font-weight: 700">결제 기능 준비 중</button>
-      </div>
-
-      <!-- 입금 안내 -->
-      <div style="flex: 1 1 380px; min-width: 0; background: #161936; border: 1px solid #262A52; border-radius: 20px; padding: 32px; display: flex; flex-direction: column; gap: 20px">
-        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
-          <h2 style="margin: 0; font-size: 19px; font-weight: 700">2. 아래 계좌로 입금</h2>
-          <span style="padding: 6px 12px; border-radius: 999px; background: #3A2F0E; color: #FFD27A; font-size: 13px; font-weight: 700">입금 대기 · [남은 시간] 남음</span>
-        </div>
-
-        <dl style="margin: 0; display: flex; flex-direction: column; gap: 0; border-radius: 14px; background: #1E2142; padding: 4px 20px">
-          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; border-bottom: 1px solid #2D3060">
-            <dt style="font-size: 14px; color: #A9ABC6">은행</dt><dd style="margin: 0; font-size: 16px; font-weight: 500">[은행명]</dd>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; border-bottom: 1px solid #2D3060">
-            <dt style="font-size: 14px; color: #A9ABC6">계좌번호</dt>
-            <dd style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 500"><span style="font-family: 'Space Grotesk', sans-serif">[계좌번호]</span><button aria-label="계좌번호 복사" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #33366A; background: transparent; color: #D3D5E8; font: inherit; font-size: 13px; cursor: pointer">복사</button></dd>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; border-bottom: 1px solid #2D3060">
-            <dt style="font-size: 14px; color: #A9ABC6">예금주</dt><dd style="margin: 0; font-size: 16px; font-weight: 500">[예금주]</dd>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; border-bottom: 1px solid #2D3060">
-            <dt style="font-size: 14px; color: #A9ABC6">입금자명</dt><dd style="margin: 0; font-size: 16px; font-weight: 500">홍길동</dd>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 64px">
-            <dt style="font-size: 14px; color: #A9ABC6">입금 금액</dt><dd style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: #B3AAFF">[가격+끝자리]원</dd>
-          </div>
-        </dl>
-
-        <p style="margin: 0; padding: 14px 16px; border-radius: 12px; background: #26295A; font-size: 14px; line-height: 1.7; color: #D3D5E8">금액 끝자리까지 정확히 입금해주세요. 같은 시간에 주문한 다른 사람과 구분하려고 주문마다 끝자리가 달라요.</p>
-
-        <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 15px">
-          <li style="display: flex; align-items: center; gap: 12px"><span style="width: 28px; height: 28px; border-radius: 50%; background: #5B4BE8; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex: none">✓</span>주문 생성됨</li>
-          <li style="display: flex; align-items: center; gap: 12px"><span style="width: 28px; height: 28px; border-radius: 50%; border: 2px solid #7B6BFF; color: #B3AAFF; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex: none; box-sizing: border-box">2</span>입금 확인 중 (자동)</li>
-          <li style="display: flex; align-items: center; gap: 12px; color: #8E91B3"><span style="width: 28px; height: 28px; border-radius: 50%; border: 1px solid #33366A; display: flex; align-items: center; justify-content: center; font-size: 13px; flex: none; box-sizing: border-box">3</span>서버에 프리미엄 적용 + DM 알림</li>
-        </ol>
-      </div>
-    </div>
+  <section class="card" id="needLogin" hidden style="max-width: 520px">
+    <h2>먼저 로그인해주세요</h2>
+    <p class="note">프리미엄은 서버에 적용돼요. 내가 관리하는 서버를 고르려면 디스코드 로그인이 필요해요.</p>
+    <a class="btn" href="/login?next=/checkout">Discord로 로그인</a>
   </section>
-</div>
+
+  <section class="card" id="notReady" hidden style="max-width: 520px">
+    <h2>결제 준비 중이에요</h2>
+    <p class="note">아직 결제 계좌가 설정되지 않았어요. 잠시 후 다시 와주세요.</p>
+  </section>
+
+  <div class="grid" id="flow" hidden>
+    <!-- 1. 주문 -->
+    <section class="card" id="formCard">
+      <h2>1. 주문 정보</h2>
+      <fieldset id="plans"><legend>플랜 (30일)</legend></fieldset>
+      <label>적용할 서버<select id="guild"></select></label>
+      <p class="note" id="noGuild" hidden>NOVIX가 들어가 있고, 내가 관리 권한을 가진 서버가 없어요. <a href="/invite">봇 초대하기 →</a></p>
+      <label>입금자명 (통장에 찍히는 이름 그대로)<input type="text" id="depositor" maxlength="20" placeholder="홍길동" autocomplete="name"></label>
+      <button class="btn" id="make" type="button">주문 만들기</button>
+      <p class="toast" id="formMsg" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- 2. 입금 안내 -->
+    <section class="card" id="payCard">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px">
+        <h2>2. 아래 계좌로 입금</h2>
+        <span class="pill wait" id="pill">주문을 만들면 계좌가 나와요</span>
+      </div>
+      <dl id="payInfo" hidden>
+        <div><dt>은행</dt><dd id="bName"></dd></div>
+        <div><dt>계좌번호</dt><dd><span id="bAcc" style="font-family: 'Space Grotesk', sans-serif"></span><button class="btn ghost small" type="button" data-copy="bAcc" aria-label="계좌번호 복사">복사</button></dd></div>
+        <div><dt>예금주</dt><dd id="bHolder"></dd></div>
+        <div><dt>입금자명</dt><dd id="oName"></dd></div>
+        <div><dt>입금 금액</dt><dd><span class="big" id="oAmount"></span><button class="btn ghost small" type="button" data-copy="oAmountRaw" aria-label="금액 복사">복사</button><span id="oAmountRaw" hidden></span></dd></div>
+      </dl>
+      <p class="note" id="payNote" hidden>⚠️ <b>금액 끝자리까지 정확히</b> 입금해주세요. 주문마다 끝자리가 달라서, 그걸로 누가 입금했는지 자동으로 알아내요.</p>
+      <ol class="steps" id="steps">
+        <li id="s1"><span class="dot">1</span>주문 만들기</li>
+        <li id="s2"><span class="dot">2</span>입금 확인 중 (자동, 보통 몇 분)</li>
+        <li id="s3"><span class="dot">3</span>서버에 적용 + 디스코드 DM</li>
+      </ol>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px" id="payActions" hidden>
+        <button class="btn ghost" type="button" id="cancel">주문 취소</button>
+      </div>
+    </section>
+
+    <!-- 완료 -->
+    <section class="card success" id="doneCard" hidden>
+      <div class="icon"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#7EE2A8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></div>
+      <h2 style="font-size: 24px">결제 완료!</h2>
+      <p id="doneText" style="margin: 0; color: var(--muted); line-height: 1.7"></p>
+      <a class="btn" href="/app">대시보드로 가기</a>
+    </section>
+  </div>
+
+  <section class="card" id="historyCard" hidden style="margin-top: 24px; max-width: 100%">
+    <h2>내 주문</h2>
+    <div class="orders" id="history"></div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const won = (n) => Number(n).toLocaleString('ko-KR') + '원';
+  const LABEL = { pending: '입금 대기', paid: '결제 완료', expired: '기한 지남', cancelled: '취소됨' };
+  let order = null, timer = null, tick = null;
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { const e = new Error(data.error || '오류가 났어요'); e.status = res.status; throw e; }
+    return data;
+  }
+  const toast = (el, t, ok) => { el.textContent = t; el.className = 'toast ' + (ok ? 'ok' : 'err'); };
+
+  function setStep(n) {
+    ['s1', 's2', 's3'].forEach((id, i) => { $(id).className = i + 1 < n ? 'done' : i + 1 === n ? 'now' : ''; $(id).firstChild.textContent = i + 1 < n ? '✓' : String(i + 1); });
+  }
+
+  function showOrder(o) {
+    order = o;
+    history.replaceState(null, '', '/checkout?order=' + o.id);
+    if (o.status === 'paid') {
+      clearInterval(timer); clearInterval(tick);
+      $('formCard').hidden = true; $('payCard').hidden = true; $('doneCard').hidden = false;
+      $('doneText').textContent = `${o.guild.name} 서버에 ${o.planName}이 적용됐어요. 디스코드 DM도 확인해보세요.`;
+      return;
+    }
+    $('doneCard').hidden = true; $('payCard').hidden = false;
+    const pending = o.status === 'pending';
+    $('payInfo').hidden = !pending; $('payNote').hidden = !pending; $('payActions').hidden = !pending;
+    if (pending && o.bank) {
+      $('bName').textContent = o.bank.name; $('bAcc').textContent = o.bank.account; $('bHolder').textContent = o.bank.holder;
+      $('oName').textContent = o.depositor; $('oAmount').textContent = won(o.amount); $('oAmountRaw').textContent = String(o.amount);
+      setStep(2);
+      clearInterval(tick);
+      const upd = () => {
+        const left = new Date(o.expiresAt) - Date.now();
+        if (left <= 0) { $('pill').textContent = '기한 지남 — 새로 주문해주세요'; $('pill').className = 'pill bad'; return; }
+        const m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
+        $('pill').textContent = `입금 대기 · ${m}분 ${String(s).padStart(2, '0')}초 남음`; $('pill').className = 'pill wait';
+      };
+      upd(); tick = setInterval(upd, 1000);
+      clearInterval(timer); timer = setInterval(poll, 8000);
+    } else {
+      clearInterval(timer); clearInterval(tick); setStep(1);
+      $('pill').textContent = LABEL[o.status] + (o.status === 'expired' ? ' — 새로 주문해주세요' : ''); $('pill').className = 'pill bad';
+    }
+  }
+
+  async function poll() {
+    if (!order) return;
+    try { const { order: o } = await api('/api/orders/' + order.id); if (o.status !== order.status || o.status === 'paid') showOrder(o); } catch {}
+  }
+
+  document.querySelectorAll('[data-copy]').forEach((b) => {
+    b.onclick = async () => {
+      try { await navigator.clipboard.writeText($(b.dataset.copy).textContent); const t = b.textContent; b.textContent = '복사됨'; setTimeout(() => { b.textContent = t; }, 1500); } catch {}
+    };
+  });
+
+  $('make').onclick = async () => {
+    const plan = document.querySelector('input[name=plan]:checked')?.value;
+    $('make').disabled = true;
+    try {
+      const { order: o } = await api('/api/orders', { method: 'POST', body: JSON.stringify({ plan, guildId: $('guild').value, depositor: $('depositor').value }) });
+      toast($('formMsg'), '✅ 주문을 만들었어요. 오른쪽(아래) 계좌로 입금해주세요.', true);
+      showOrder(o); loadHistory();
+      if (matchMedia('(max-width: 900px)').matches) $('payCard').scrollIntoView({ behavior: 'smooth' });
+    } catch (e) { toast($('formMsg'), '❌ ' + e.message, false); }
+    $('make').disabled = false;
+  };
+
+  $('cancel').onclick = async () => {
+    if (!order || !confirm('이 주문을 취소할까요? 이미 입금했다면 취소하지 마세요.')) return;
+    await api(`/api/orders/${order.id}/cancel`, { method: 'POST', body: '{}' }).catch(() => {});
+    const { order: o } = await api('/api/orders/' + order.id); showOrder(o); loadHistory();
+  };
+
+  async function loadHistory() {
+    const { orders } = await api('/api/orders/mine').catch(() => ({ orders: [] }));
+    $('historyCard').hidden = !orders.length;
+    $('history').replaceChildren(...orders.map((o) => {
+      const a = document.createElement('a'); a.href = '/checkout?order=' + o.id;
+      const l = document.createElement('span'); l.textContent = `#${o.id} · ${o.planName} · ${o.guild.name}`;
+      const r = document.createElement('span'); r.textContent = `${won(o.amount)} · ${LABEL[o.status]}`;
+      a.append(l, r); a.onclick = (e) => { e.preventDefault(); showOrder(o); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+      return a;
+    }));
+  }
+
+  (async () => {
+    const [plansRes, meRes] = await Promise.allSettled([api('/api/plans'), api('/api/me')]);
+    if (meRes.status === 'rejected') { $('needLogin').hidden = false; return; }
+    const P = plansRes.value;
+    if (!P.ready) { $('notReady').hidden = false; return; }
+    $('flow').hidden = false;
+
+    const want = new URLSearchParams(location.search).get('plan');
+    Object.entries(P.plans).forEach(([key, p], i) => {
+      const l = P.limits[key];
+      const lab = document.createElement('label'); lab.className = 'plan';
+      const left = document.createElement('span'); left.className = 'left';
+      const r = document.createElement('input'); r.type = 'radio'; r.name = 'plan'; r.value = key; r.checked = want ? want === key : i === 0;
+      const nm = document.createElement('span'); nm.innerHTML = '<b></b><br><small></small>'; nm.querySelector('b').textContent = p.name;
+      nm.querySelector('small').textContent = `금지어 ${l.badWords} · 자동응답 ${l.autoResponses} · 레벨 보상 ${l.levelRewards}`;
+      left.append(r, nm);
+      const price = document.createElement('span'); price.className = 'price'; price.textContent = won(p.price);
+      lab.append(left, price); $('plans').append(lab);
+    });
+
+    const guilds = meRes.value.guilds.filter((g) => g.botIn);
+    if (!guilds.length) { $('noGuild').hidden = false; $('guild').disabled = true; $('make').disabled = true; }
+    guilds.forEach((g) => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; $('guild').append(o); });
+
+    loadHistory();
+    const oid = new URLSearchParams(location.search).get('order');
+    if (oid) { try { const { order: o } = await api('/api/orders/' + oid); showOrder(o); } catch {} }
+  })().catch((e) => { document.querySelector('main').prepend(Object.assign(document.createElement('p'), { className: 'toast err', textContent: '❌ ' + e.message })); });
+})();
+</script>
 </body>
 </html>

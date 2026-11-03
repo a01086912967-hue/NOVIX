@@ -8,6 +8,8 @@ module.exports = {
 
     try {
       if (interaction.isButton()) return await handleButton(interaction);
+      if ((interaction.isModalSubmit() || interaction.isStringSelectMenu()) && interaction.customId.startsWith('kr:'))
+        return await require('../utils/karaoke').handle(interaction);
       if (!interaction.isChatInputCommand() && !interaction.isMessageContextMenuCommand()) return;
       const command = client.commands.get(interaction.commandName);
       if (command) await command.execute(interaction, client);

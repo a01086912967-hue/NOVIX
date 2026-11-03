@@ -25,12 +25,12 @@ module.exports = {
 
     if (sub === '상태') {
       const p = await db.getPremium(interaction.guild.id);
+      const l = await db.getLimits(interaction.guild.id);
+      const limits = `금지어 ${l.badWords}개 · 자동응답 ${l.autoResponses}개 · 레벨 보상 ${l.levelRewards}개`;
+      const shop = process.env.PUBLIC_URL ? `\n👉 ${process.env.PUBLIC_URL.replace(/\/$/, '')}/plans` : '';
       const e = p
-        ? embed('💎 프리미엄 사용 중', `**플랜:** ${p.plan === 'premium_plus' ? '프리미엄+' : '프리미엄'}\n**만료:** <t:${Math.floor(new Date(p.expires_at) / 1000)}:R>`)
-        : embed(
-            '무료 플랜',
-            `금지어 ${db.FREE_LIMITS.badWords}개 · 자동응답 ${db.FREE_LIMITS.autoResponses}개 · 레벨 보상 ${db.FREE_LIMITS.levelRewards}개까지 쓸 수 있어요.\n프리미엄이면 전부 무제한 + 노래방!`
-          );
+        ? embed('💎 프리미엄 사용 중', `**플랜:** ${db.PLANS[p.plan]?.name || p.plan}\n**만료:** <t:${Math.floor(new Date(p.expires_at) / 1000)}:f> (<t:${Math.floor(new Date(p.expires_at) / 1000)}:R>)\n**한도:** ${limits}\n연장하면 남은 기간 뒤에 이어 붙어요.${shop}`)
+        : embed('무료 플랜', `**한도:** ${limits}\n프리미엄 ${db.PLANS.premium.price.toLocaleString('ko-KR')}원 · 프리미엄+ ${db.PLANS.premium_plus.price.toLocaleString('ko-KR')}원 (30일)${shop}`);
       return interaction.reply({ embeds: [e], flags: MessageFlags.Ephemeral });
     }
 
@@ -46,7 +46,7 @@ module.exports = {
     const days = interaction.options.getInteger('일수') || 30;
     const p = await db.grantPremium(guildId, plan, days);
     return interaction.reply({
-      content: `💎 \`${guildId}\` 서버에 ${plan === 'premium_plus' ? '프리미엄+' : '프리미엄'} ${days}일 지급! 만료: <t:${Math.floor(new Date(p.expires_at) / 1000)}:f>`,
+      content: `💎 \`${guildId}\` 서버에 ${db.PLANS[plan].name} ${days}일 지급! 만료: <t:${Math.floor(new Date(p.expires_at) / 1000)}:f>`,
       flags: MessageFlags.Ephemeral,
     });
   },

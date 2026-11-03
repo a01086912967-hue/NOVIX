@@ -129,6 +129,7 @@ async function ticketClose(interaction) {
 
 async function handleButton(interaction) {
   const [type, arg] = interaction.customId.split(':');
+  if (type === 'kr') return require('./karaoke').handle(interaction);
   if (type === 'ticket') return arg === 'open' ? ticketOpen(interaction) : ticketClose(interaction);
   if (type === 'rm') return roleMenu(interaction, arg);
   if (type === 'verify') return verify(interaction);

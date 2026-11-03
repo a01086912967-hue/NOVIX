@@ -2,6 +2,7 @@ const db = require('../db');
 const { embed, sendLog } = require('./helpers');
 const { endGiveaway } = require('./giveaway');
 const { runDueAutoMessages } = require('./autoMessages');
+const { expireOrders } = require('./payments');
 
 // 20초마다 시간이 된 작업 실행
 async function tick(client) {
@@ -36,6 +37,7 @@ function startScheduler(client) {
   const run = () => {
     tick(client).catch(console.error);
     runDueAutoMessages(client).catch(console.error);
+    expireOrders().catch(console.error);
   };
   run();
   setInterval(run, 20_000);

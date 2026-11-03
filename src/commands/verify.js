@@ -1,8 +1,6 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const db = require('../db');
-const { embed } = require('../utils/helpers');
-
-const isUrl = (v) => /^https?:\/\/\S+$/i.test(v || '');
+const { buildVerifyPanel } = require('../utils/verifyPanel');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -62,22 +60,15 @@ module.exports = {
       return x;
     });
 
-    const checks = mode === 'web'
-      ? ['🤖 사람 확인', s.verify.blockVpn && '🛡️ VPN 차단', s.verify.blockAlts && '👥 부계정 차단', s.verify.minAccountAgeDays && `📅 가입 ${s.verify.minAccountAgeDays}일 이상`].filter(Boolean)
-      : [s.verify.minAccountAgeDays && `📅 가입 ${s.verify.minAccountAgeDays}일 이상`].filter(Boolean);
-
-    const text = (o.getString('문구') || '서버 규칙을 읽었다면 아래 버튼을 눌러 인증해주세요.').replaceAll('\\n', '\n');
-    const e = embed(o.getString('제목') || '🔐 서버 인증', text);
-    if (checks.length) e.addFields({ name: '인증 검사', value: checks.join(' · ') });
-    const color = o.getString('색');
-    if (color && /^#?[0-9a-f]{6}$/i.test(color)) e.setColor(parseInt(color.replace('#', ''), 16));
-    if (isUrl(o.getString('이미지'))) e.setImage(o.getString('이미지'));
-    if (interaction.guild.iconURL()) e.setThumbnail(interaction.guild.iconURL({ size: 256 }));
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('verify').setLabel(o.getString('버튼글자') || '인증하기').setEmoji('✅').setStyle(ButtonStyle.Success)
+    await interaction.channel.send(
+      buildVerifyPanel(interaction.guild, s, {
+        title: o.getString('제목'),
+        description: o.getString('문구'),
+        color: o.getString('색'),
+        image: o.getString('이미지'),
+        buttonLabel: o.getString('버튼글자'),
+      })
     );
-    await interaction.channel.send({ embeds: [e], components: [row] });
     await interaction.reply({
       content:
         `✅ 인증 메시지를 만들었어요 (${mode === 'web' ? '웹 인증' : '버튼 인증'}). 통과하면 ${role} 역할을 받아요.\n` +

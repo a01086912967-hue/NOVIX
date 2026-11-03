@@ -37,7 +37,11 @@ async function isVpn(ip) {
     const json = await res.json();
     const r = json[ip];
     if (!r) return { vpn: false, error: json.message || '검사 실패' };
-    return { vpn: r.proxy === 'yes', type: r.type };
+    // v2 형식("proxy": "yes")과 v3 형식(detections 안의 true/false) 둘 다 처리
+    const yes = (v) => v === true || v === 'yes';
+    const d = r.detections || {};
+    const vpn = yes(r.proxy) || yes(r.vpn) || yes(d.proxy) || yes(d.vpn) || yes(d.tor) || yes(d.anonymous);
+    return { vpn, type: r.type || (yes(d.vpn) ? 'VPN' : yes(d.tor) ? 'TOR' : yes(d.proxy) ? 'Proxy' : undefined) };
   } catch (err) {
     return { vpn: false, error: err.message };
   }
